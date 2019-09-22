@@ -69,16 +69,17 @@ module.exports = (function(){
   /**
    * Map different compare functions, depending on the content of this column. Default is a distinction between numbers and text.
    * The chooseSortCompareFn as well as the compareNumbers and compareText functions can be replaced by custom ones.
-   * chooseSortCompareFn -> TableComponent.customChooseCompareFn
+   * chooseSortCompareFn -> TableComponent.customChooseSortsCompareFn
    * 
+   * @param {TableComponent} table the instance of TableComponent active.
    * @param {Array<Object>} data 
    * @param {string} column the column name (header) for which a compare function is to choose. 
    */
-  function chooseSortsCompareFn(data, column){
+  function chooseSortsCompareFn(table, data, column){
     if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
-      return compareNumbers
+      return table.customCompareNumbers
     } else {
-      return compareText
+      return table.customCompareText
     }
   }
   
@@ -111,7 +112,7 @@ module.exports = (function(){
       })
     }
     table.sortedData = table.sortedData.sort((a, b) => {
-      return table.customChooseCompareFn(table.sortedData, column)(a[column], b[column])
+      return table.customChooseSortsCompareFn(table, table.sortedData, column)(a[column], b[column])
     })
     table.redrawData()
   }
@@ -195,47 +196,57 @@ module.exports = (function(){
   }
 
   function applyConditionalColumnStyling(table, data, header, conditionalColumnStyle, options){
-    let styleElement = document.createElement('style');
-    styleElement.type = "text/css";
+    if(options.active){
+      let styleElement = document.createElement('style');
+      styleElement.type = "text/css";
 
-    header.forEach(column => {
-      conditionalColumnStyle.forEach((conditionalStyle) => {
-        if(conditionalStyle.condition(data, column)){
-          styleElement.innerHTML += `
-            div.column_${column}.data_cell {
-              ${conditionalStyle.styles.join('\n')}
-            }
-          `
-        }
+      header.forEach(column => {
+        conditionalColumnStyle.forEach((conditionalStyle) => {
+          if(conditionalStyle.condition(data, column)){
+            styleElement.innerHTML += `
+              div.column_${column}.data_cell {
+                ${conditionalStyle.styles.join('\n')}
+              }
+            `
+          }
+        })
       })
-    })
 
-    table.root_document.querySelector('head').append(styleElement);
+      table.root_document.querySelector('head').append(styleElement);
+    }
   }
 
-  function applyFilter(data, header, filter, options){
-    return data.filter(row => 
-      header.map(column => {
-        if(filter[column]){
-          return options.filterType(filter[column], row[column]);
-        }
-        else return true;
-      }).reduce((col, cur) => (col && cur), true)
-    )
+  function applyFilter(table, data, header, filter, options){
+    if(options.active){
+      return data.filter(row => 
+        header.map(column => {
+          if(filter[column]){
+            return table.customFilterFunction(filter[column], row[column]);
+          }
+          else return true;
+        }).reduce((col, cur) => (col && cur), true)
+      )
+    } else {
+      return data;
+    }
   }
 
   function applyFormatter(data, header, formatter, options){
-    return data.map((row, rowNr, dataReadOnly) => {
-      let formattedRow = {}; 
-      header.forEach(column => {
-        if(formatter[column]){
-          formattedRow[column] = formatter[column].reduce((col, cur) => cur(col, rowNr, dataReadOnly), row[column])//.toString();
-        } else {
-          formattedRow[column] = row[column]
-        }
-      })
-      return formattedRow;
-    })
+    if(options.active){
+      return data.map((row, rowNr, dataReadOnly) => {
+        let formattedRow = {}; 
+        header.forEach(column => {
+          if(formatter[column]){
+            formattedRow[column] = formatter[column].reduce((col, cur) => cur(col, rowNr, dataReadOnly), row[column])//.toString();
+          } else {
+            formattedRow[column] = row[column]
+          }
+        })
+        return formattedRow;
+      }) 
+    } else {
+      return data;
+    }
   }
 
   function drawTable(table){
@@ -262,7 +273,7 @@ module.exports = (function(){
     }
 
     if (table.data){
-      table.displayedData = drawData();
+      table.displayedData = drawData(table);
       if (table.drawOptionals.footer) createFooter(table, table.displayedData);
     }
   }
@@ -270,7 +281,7 @@ module.exports = (function(){
   function drawData(table){
     applyConditionalColumnStyling(table, table.sortedData, table.header, table.conditionalColumnStyle, table.conditionalColumnOptions);
     let formattedData = applyFormatter(table.sortedData, table.header, table.formatter, table.formatterOptions);
-    let filteredData = applyFilter(formattedData, table.header, table.filter, table.filterOptions);
+    let filteredData = applyFilter(table, formattedData, table.header, table.filter, table.filterOptions);
     table.style.gridTemplateRows = `${
       table.drawOptionals.header ? 'max-content' : ''} ${
         table.drawOptionals.filter ? 'max-content' : ''} repeat(${filteredData.length}, max-content) ${
@@ -311,8 +322,7 @@ module.exports = (function(){
 
       this.filter = {}
       this.filterOptions = {
-        "filterType": regexFilter 
-        // "filterType": textFilter
+        "active": true,
       }
       this.customFilterFunction = regexFilter;
 
@@ -322,7 +332,7 @@ module.exports = (function(){
       }
       this.customCompareNumbers = compareNumbers;
       this.customCompareText = compareText;
-      this.customChooseCompareFn = chooseCompareFn;
+      this.customChooseSortsCompareFn = chooseSortsCompareFn;
       
       this.drawOptionals = {}
     }

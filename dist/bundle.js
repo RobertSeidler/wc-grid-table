@@ -401,13 +401,13 @@ let percentFormatter = (value, rowIndex, orgData) => (value != undefined ? `${Nu
 table.formatter.Einzelpreis = [currencyFormatter];
 table.formatter.Rabattsatz = [percentFormatter];
 
-table.setDebounceFn(debounce);
+table.setDebounceFn(debounce, [500, {leading: true, trailing: false, maxWait: 1000}], [500, {leading: false, trailing: true, maxWait: 1000}]);
 
 fetch('./data.json')
   .then(response => response.json())
   .then(data => data.map(row => ({
     Artikelnummer: row["Artikelnummer"], 
-    Name1: row["Name1"], 
+    Unternehmen: row["Unternehmen"], 
     Einzelpreis: Number.parseFloat(row["Einzelpreis"]), 
     Rabattsatz: row["Rabattsatz"] ? Number.parseFloat(row["Rabattsatz"]) : undefined
   })))
@@ -421,6 +421,17 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
 },{"./wc-grid-table.js":3,"lodash.debounce":1}],3:[function(require,module,exports){
 module.exports = (function(){
+
+  /**
+   * Transform the filter input into a RegExp, to let the user have a powerfull way to filter in the table.
+   * Only rows where the tested value matches the RegExp, get displayed. 
+   * Additionally you can prepend three exclamation marks ('!!!') to negate the RegExp, so that only rows that
+   * don't match the RegExp are displayed. This is the default filter function.
+   * This function can be replaced by supplying your own function to TableComponent.customFilterFunction.
+   * 
+   * @param {string} filterInput the value of the filter text input field.
+   * @param {string} testValue the table value to validate against.
+   */
   function regexFilter(filterInput, testValue){
     let negate = filterInput.substring(0, 3) === '!!!';
     filterInput = negate ? filterInput.substring(3) : filterInput;
@@ -429,7 +440,16 @@ module.exports = (function(){
     return negate ? !result : result;
   }
    
-  
+  /**
+   * Test the filter input string with includes (case is ignored) against the table value.
+   * Only rows where the filter input is a substring of the tested value.
+   * Additionally you can prepend three exclamation marks ('!!!') to negate the outcome, 
+   * so that only rows that are not included in the table value are displayed.
+   * This function can replace by supplying it to TableComponent.customFilterFunction.
+   * 
+   * @param {string} filterInput the value of the filter text input field.
+   * @param {string} testValue the table value to validate against.
+   */
   function textFilter(filterInput, testValue){
     let negate = filterInput.substring(0, 3) === '!!!';
     filterInput = negate ? filterInput.substring(3) : filterInput;
@@ -437,12 +457,28 @@ module.exports = (function(){
     return negate ? !match : match;
   }
   
+  /**
+   * Compare function for comparing numbers for sorting. Additionally undefined values are 
+   * always the 'smaller' value, so that they get sorted to the bottom.
+   * Can be replaced by supplying a custom compare function to TableComponent.customCompareNumbers.
+   * 
+   * @param {number} a number to compare. 
+   * @param {number} b number to compare.
+   */
   function compareNumbers(a, b){
     if (a == undefined) return 1;
     if (b == undefined) return -1;
     return a - b;
   }
   
+  /**
+   * Compare function for comparing strings for sorting. Additionally undefined values are
+   * always the 'smaller' value, so that they get sorted to the bottom. 
+   * Can be replaced by supplying a custom compare function to TableComponent.customCompareText.
+   * 
+   * @param {string} a text to compare.
+   * @param {string} b text to compare.
+   */
   function compareText(a, b){
     let result = 0;
     if (a == undefined) return 1;
@@ -452,14 +488,28 @@ module.exports = (function(){
     return result;
   }
   
-  function chooseSortsCompareFn(data, column){
+  /**
+   * Map different compare functions, depending on the content of this column. Default is a distinction between numbers and text.
+   * The chooseSortCompareFn as well as the compareNumbers and compareText functions can be replaced by custom ones.
+   * chooseSortCompareFn -> TableComponent.customChooseSortsCompareFn
+   * 
+   * @param {TableComponent} table the instance of TableComponent active.
+   * @param {Array<Object>} data 
+   * @param {string} column the column name (header) for which a compare function is to choose. 
+   */
+  function chooseSortsCompareFn(table, data, column){
     if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
-      return compareNumbers
+      return table.customCompareNumbers
     } else {
-      return compareText
+      return table.customCompareText
     }
   }
   
+  /**
+   * Register the TableComponent to the customElementRegistry, so that it can be used as a WebComponent.
+   * 
+   * @param {class} TableComponent 
+   */
   function defineCustomElement(TableComponent){
     customElements.define('wc-grid-table', TableComponent);
   }
@@ -484,7 +534,7 @@ module.exports = (function(){
       })
     }
     table.sortedData = table.sortedData.sort((a, b) => {
-      return table.sortOptions.chooseCompareFn(table.sortedData, column)(a[column], b[column])
+      return table.customChooseSortsCompareFn(table, table.sortedData, column)(a[column], b[column])
     })
     table.redrawData()
   }
@@ -551,6 +601,12 @@ module.exports = (function(){
     })
   }
 
+  /**
+   * Read the column names (header) from the data, if they are not supplyed. 
+   * 
+   * @param {Array<Object>} data 
+   * @returns {Array<string>} the list of column names.
+   */
   function generateHeader(data){
     return data.map(Object.keys).reduce((col, cur) => {
       let result = col;
@@ -562,47 +618,98 @@ module.exports = (function(){
   }
 
   function applyConditionalColumnStyling(table, data, header, conditionalColumnStyle, options){
-    let styleElement = document.createElement('style');
-    styleElement.type = "text/css";
+    if(options.active){
+      let styleElement = document.createElement('style');
+      styleElement.type = "text/css";
 
-    header.forEach(column => {
-      conditionalColumnStyle.forEach((conditionalStyle) => {
-        if(conditionalStyle.condition(data, column)){
-          styleElement.innerHTML += `
-            div.column_${column}.data_cell {
-              ${conditionalStyle.styles.join('\n')}
-            }
-          `
-        }
+      header.forEach(column => {
+        conditionalColumnStyle.forEach((conditionalStyle) => {
+          if(conditionalStyle.condition(data, column)){
+            styleElement.innerHTML += `
+              div.column_${column}.data_cell {
+                ${conditionalStyle.styles.join('\n')}
+              }
+            `
+          }
+        })
       })
-    })
 
-    table.root_document.querySelector('head').append(styleElement);
+      table.root_document.querySelector('head').append(styleElement);
+    }
   }
 
-  function applyFilter(data, header, filter, options){
-    return data.filter(row => 
-      header.map(column => {
-        if(filter[column]){
-          return options.filterType(filter[column], row[column]);
-        }
-        else return true;
-      }).reduce((col, cur) => (col && cur), true)
-    )
+  function applyFilter(table, data, header, filter, options){
+    if(options.active){
+      return data.filter(row => 
+        header.map(column => {
+          if(filter[column]){
+            return table.customFilterFunction(filter[column], row[column]);
+          }
+          else return true;
+        }).reduce((col, cur) => (col && cur), true)
+      )
+    } else {
+      return data;
+    }
   }
 
   function applyFormatter(data, header, formatter, options){
-    return data.map((row, rowNr, dataReadOnly) => {
-      let formattedRow = {}; 
-      header.forEach(column => {
-        if(formatter[column]){
-          formattedRow[column] = formatter[column].reduce((col, cur) => cur(col, rowNr, dataReadOnly), row[column])//.toString();
-        } else {
-          formattedRow[column] = row[column]
-        }
-      })
-      return formattedRow;
-    })
+    if(options.active){
+      return data.map((row, rowNr, dataReadOnly) => {
+        let formattedRow = {}; 
+        header.forEach(column => {
+          if(formatter[column]){
+            formattedRow[column] = formatter[column].reduce((col, cur) => cur(col, rowNr, dataReadOnly), row[column])//.toString();
+          } else {
+            formattedRow[column] = row[column]
+          }
+        })
+        return formattedRow;
+      }) 
+    } else {
+      return data;
+    }
+  }
+
+  function drawTable(table){
+    table.drawOptionals = {
+      header: !table.hasAttribute('noheader'),
+      filter: !table.hasAttribute('nofilter'),
+      footer: !table.hasAttribute('nofooter')
+    }
+    
+    table.innerHTML = "";      
+    if(!table.sortedData) table.sortedData = table.data;
+
+    if(!table.header && table.data){
+      table.header = generateHeader(table.data);
+    }
+
+    if(table.drawOptionals.header && table.header){
+      table.style.gridTemplateColumns = `repeat(${table.header.length}, max-content)`;
+      createHeader(table);
+    }
+    
+    if(table.drawOptionals.filter && table.header){
+      createFilter(table, table.header, table.filter);
+    }
+
+    if (table.data){
+      table.displayedData = drawData(table);
+      if (table.drawOptionals.footer) createFooter(table, table.displayedData);
+    }
+  }
+
+  function drawData(table){
+    applyConditionalColumnStyling(table, table.sortedData, table.header, table.conditionalColumnStyle, table.conditionalColumnOptions);
+    let formattedData = applyFormatter(table.sortedData, table.header, table.formatter, table.formatterOptions);
+    let filteredData = applyFilter(table, formattedData, table.header, table.filter, table.filterOptions);
+    table.style.gridTemplateRows = `${
+      table.drawOptionals.header ? 'max-content' : ''} ${
+        table.drawOptionals.filter ? 'max-content' : ''} repeat(${filteredData.length}, max-content) ${
+          table.drawOptionals.footer ? 'max-content' : ''}`; 
+    fillData(table, filteredData);
+    return filteredData;
   }
 
   class TableComponent extends HTMLElement{
@@ -612,6 +719,9 @@ module.exports = (function(){
       this.useDefaultOptions();
     }
 
+    /**
+     * Reset Options to the default configuration.
+     */
     useDefaultOptions(){
       this.root_document = document;
 
@@ -629,95 +739,85 @@ module.exports = (function(){
 
       this.formatter = {}
       this.formatterOptions = {
-        
+        "active": true,
       }
 
       this.filter = {}
       this.filterOptions = {
-        "filterType": regexFilter 
-        // "filterType": textFilter
+        "active": true,
       }
+      this.customFilterFunction = regexFilter;
 
       this.sortedBy = [];
       this.sortOptions = {
-        "chooseCompareFn": chooseSortsCompareFn
+        "active": true,
       }
+      this.customCompareNumbers = compareNumbers;
+      this.customCompareText = compareText;
+      this.customChooseSortsCompareFn = chooseSortsCompareFn;
       
       this.drawOptionals = {}
     }
 
+    /**
+     * Called when table is added to DOM. Doesn't need to be called manually.
+     */
     connectedCallback(){
       this.classList.add('grid-container')
       if(!this.sortedData && this.data) this.sortedData = this.data;
-      this.drawTable()
+      drawTable(this)
     }
 
-    setDebounceFn(debounceFn){
+    /**
+     * Configure a debounce function for event based table changes like sortClick and filterChange.
+     * 
+     * @param {Function} debounceFn a debounce function; has to return the debounced function; the debounced function should implement a cancel function. (tested with lodash.debounce)
+     * @param {Array<any>} sortDebounceOptions the arguments list for the sort click event required by the debounce function.
+     * @param {Array<any>} filterDebouncedOptions the arguments list for the filter change event required by the debounce  by the debounce function.
+     */
+    setDebounceFn(debounceFn, sortDebounceOptions, filterDebouncedOptions){
       if(this.optionalDebounceFn) {
         onSortClick.cancel()
         filterChanged.cancel()
       }
       this.optionalDebounceFn = debounceFn;
-      onSortClick = this.optionalDebounceFn(onSortClick, 500, {leading: true, trailing: false, maxWait: 1000});
-      filterChanged = this.optionalDebounceFn(filterChanged, 500, {leading: false, trailing: true, maxWait: 1000});
+      onSortClick = this.optionalDebounceFn(onSortClick, ...sortDebounceOptions);
+      filterChanged = this.optionalDebounceFn(filterChanged, ...filterDebouncedOptions);
     }
 
+    /**
+     * Set the data to be displayed by table as a list of row objects.
+     * 
+     * @param {Array<Object>} data 
+     */
     setData(data){
       this.data = data;
       this.sortedData = data;
-      this.drawTable();
+      drawTable(this);
     }
 
-    getData(){
-      return this.data
+    /**
+     * Get the data that is sorted, formatted and filtered.
+     */
+    getDisplayedData(){
+      return this.displayedData;
     }
 
-    drawTable(){
-      this.drawOptionals = {
-        header: !this.hasAttribute('noheader'),
-        filter: !this.hasAttribute('nofilter'),
-        footer: !this.hasAttribute('nofooter')
-      }
-      
-      this.innerHTML = "";      
-      if(!this.sortedData) this.sortedData = this.data;
-
-      if(!this.header && this.data){
-        this.header = generateHeader(this.data);
-      }
-
-      if(this.drawOptionals.header && this.header){
-        this.style.gridTemplateColumns = `repeat(${this.header.length}, max-content)`;
-        createHeader(this);
-      }
-      
-      if(this.drawOptionals.filter && this.header){
-        createFilter(this, this.header, this.filter);
-      }
-
-      if (this.data){
-        this.displayedData = this.drawData();
-        if (this.drawOptionals.footer) createFooter(this, this.displayedData);
-      }
+    /**
+     * Get the original Data that was supplied to the table.
+     */
+    getOriginalData(){
+      return this.data;
     }
 
-    drawData(){
-      applyConditionalColumnStyling(this, this.sortedData, this.header, this.conditionalColumnStyle, this.conditionalColumnOptions);
-      let formattedData = applyFormatter(this.sortedData, this.header, this.formatter, this.formatterOptions);
-      let filteredData = applyFilter(formattedData, this.header, this.filter, this.filterOptions);
-      this.style.gridTemplateRows = `${
-        this.drawOptionals.header ? 'max-content' : ''} ${
-          this.drawOptionals.filter ? 'max-content' : ''} repeat(${filteredData.length}, max-content) ${
-            this.drawOptionals.footer ? 'max-content' : ''}`; 
-      fillData(this, filteredData);
-      return filteredData;
-    }
-
+    /**
+     * Force a refresh, in case the data has changed. Alternatively you can call TableComponent.setData(newData).
+     */
     redrawData(){
       let dataElements = this.root_document.querySelectorAll('div.data_cell, div.footer');
       dataElements.forEach(element => this.removeChild(element), this);
       if (this.data){
-        this.displayedData = this.drawData();
+        this.displayedData = drawData(this);
         if (this.drawOptionals.footer) createFooter(this, this.displayedData);
       }
     }

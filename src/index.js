@@ -19,13 +19,13 @@ let percentFormatter = (value, rowIndex, orgData) => (value != undefined ? `${Nu
 table.formatter.Einzelpreis = [currencyFormatter];
 table.formatter.Rabattsatz = [percentFormatter];
 
-table.setDebounceFn(debounce);
+table.setDebounceFn(debounce, [500, {leading: true, trailing: false, maxWait: 1000}], [500, {leading: false, trailing: true, maxWait: 1000}]);
 
 fetch('./data.json')
   .then(response => response.json())
   .then(data => data.map(row => ({
     Artikelnummer: row["Artikelnummer"], 
-    Name1: row["Name1"], 
+    Unternehmen: row["Unternehmen"], 
     Einzelpreis: Number.parseFloat(row["Einzelpreis"]), 
     Rabattsatz: row["Rabattsatz"] ? Number.parseFloat(row["Rabattsatz"]) : undefined
   })))
