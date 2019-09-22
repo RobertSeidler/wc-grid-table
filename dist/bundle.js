@@ -395,11 +395,13 @@ defineCustomElement(TableComponent)
 let table = document.createElement('wc-grid-table') 
 
 // table.header = ["Artikelnummer", "Name1", "Einzelpreis", "Rabattsatz"]
-let currencyFormatter = (value, rowIndex, orgData) => `${Number.parseFloat(value).toFixed(2)} €`;
+let currencyFormatter = (value, rowIndex, orgData) => (value != undefined && value != '' ? `${Number.parseFloat(value).toFixed(2)} €` : '');
 let percentFormatter = (value, rowIndex, orgData) => (value != undefined ? `${Number.parseFloat(value).toFixed(2)} %` : '');
 // let undefinedFormatter = (value, rowIndex, orgData) => (value == undefined || value == '') ? 0.00 : value;
-table.formatter.Einzelpreis = [currencyFormatter]
-table.formatter.Rabattsatz = [percentFormatter]
+table.formatter.Einzelpreis = [currencyFormatter];
+table.formatter.Rabattsatz = [percentFormatter];
+
+table.setDebounceFn(debounce);
 
 fetch('./data.json')
   .then(response => response.json())
@@ -462,31 +464,38 @@ module.exports = (function(){
     customElements.define('wc-grid-table', TableComponent);
   }
 
-  function setUpSorting(element, column, table){
-    element.addEventListener('click', (event) => {
-      if(table.sortedBy.length > 0){
-        if(table.sortedBy[0].col === column){
-          table.sortedBy[0].dir = table.sortedBy[0].dir === "asc" ? "desc" : "asc";
-          table.sortedData = [].concat(table.sortedData.filter(entry => entry[column] != undefined).reverse(), table.sortedData.filter(entry => entry[column] == undefined));
-          table.redrawData();
-          return;
-        } else {
-          table.sortedBy.unshift({
-            col: column,
-            dir: "asc"
-          })
-        }
+  function onSortClick(table, column, event){
+    if(table.sortedBy.length > 0){
+      if(table.sortedBy[0].col === column){
+        table.sortedBy[0].dir = table.sortedBy[0].dir === "asc" ? "desc" : "asc";
+        table.sortedData = [].concat(table.sortedData.filter(entry => entry[column] != undefined).reverse(), table.sortedData.filter(entry => entry[column] == undefined));
+        table.redrawData();
+        return;
       } else {
-        table.sortedBy.push({
+        table.sortedBy.unshift({
           col: column,
           dir: "asc"
         })
       }
-      table.sortedData = table.sortedData.sort((a, b) => {
-        return table.sortOptions.chooseCompareFn(table.sortedData, column)(a[column], b[column])
+    } else {
+      table.sortedBy.push({
+        col: column,
+        dir: "asc"
       })
-      table.redrawData()
+    }
+    table.sortedData = table.sortedData.sort((a, b) => {
+      return table.sortOptions.chooseCompareFn(table.sortedData, column)(a[column], b[column])
     })
+    table.redrawData()
+  }
+
+  function filterChanged(table, column, event){
+    table.filter[column] = event.srcElement.value;
+    table.redrawData();
+  }
+
+  function setUpSorting(element, column, table){
+    element.addEventListener('click', (event) => onSortClick(table, column, event))
   }
 
   function createHeader(table){
@@ -508,7 +517,7 @@ module.exports = (function(){
       filter_input.type = 'text';
       filter_input.classList.add('filter_input');
       filter_input.value = filter[column] ? filter[column] : '';
-      filter_input.addEventListener('input', event => table.filterChanged.bind(table, column)(event))
+      filter_input.addEventListener('input', event => filterChanged.bind(null, table, column)(event))
       filter_container.classList.add('filter_cell', `filter_cell_${column}`);
       filter_container.append(filter_input);
 
@@ -606,6 +615,8 @@ module.exports = (function(){
     useDefaultOptions(){
       this.root_document = document;
 
+      this.optionalDebounceFn = undefined;
+
       this.conditionalColumnStyle = [
         {
           "condition": (data, column) => (!Number.isNaN(data.reduce((col, cur) => (col += typeof cur[column] === "string" ? NaN : (cur[column] != undefined ? cur[column] : 0)), 0))),
@@ -636,10 +647,19 @@ module.exports = (function(){
     }
 
     connectedCallback(){
-      // this.data = this.getAttribute('data')
       this.classList.add('grid-container')
       if(!this.sortedData && this.data) this.sortedData = this.data;
       this.drawTable()
+    }
+
+    setDebounceFn(debounceFn){
+      if(this.optionalDebounceFn) {
+        onSortClick.cancel()
+        filterChanged.cancel()
+      }
+      this.optionalDebounceFn = debounceFn;
+      onSortClick = this.optionalDebounceFn(onSortClick, 500, {leading: true, trailing: false, maxWait: 1000});
+      filterChanged = this.optionalDebounceFn(filterChanged, 500, {leading: false, trailing: true, maxWait: 1000});
     }
 
     setData(data){
@@ -650,13 +670,6 @@ module.exports = (function(){
 
     getData(){
       return this.data
-    }
-
-    filterChanged(column, event){
-      this.filter[column] = event.srcElement.value;
-      // this.drawTable()
-      this.redrawData();
-      // document.querySelector(`.filter_cell_${column} > input`).focus()
     }
 
     drawTable(){

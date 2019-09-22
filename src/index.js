@@ -13,11 +13,13 @@ defineCustomElement(TableComponent)
 let table = document.createElement('wc-grid-table') 
 
 // table.header = ["Artikelnummer", "Name1", "Einzelpreis", "Rabattsatz"]
-let currencyFormatter = (value, rowIndex, orgData) => `${Number.parseFloat(value).toFixed(2)} €`;
+let currencyFormatter = (value, rowIndex, orgData) => (value != undefined && value != '' ? `${Number.parseFloat(value).toFixed(2)} €` : '');
 let percentFormatter = (value, rowIndex, orgData) => (value != undefined ? `${Number.parseFloat(value).toFixed(2)} %` : '');
 // let undefinedFormatter = (value, rowIndex, orgData) => (value == undefined || value == '') ? 0.00 : value;
 table.formatter.Einzelpreis = [currencyFormatter];
 table.formatter.Rabattsatz = [percentFormatter];
+
+table.setDebounceFn(debounce);
 
 fetch('./data.json')
   .then(response => response.json())
