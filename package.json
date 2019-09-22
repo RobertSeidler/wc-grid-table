@@ -1,9 +1,10 @@
 {
   "name": "wc-grid-table",
   "version": "1.0.0",
-  "description": "a table component implemented with css-grid and webcomponents.",
-  "main": "index.js",
+  "description": "A table component implemented with css-grid and webcomponents.",
+  "main": "src/index.js",
   "scripts": {
+    "pack": "browserify src/index.js > dist/bundle.js && cp src/public/* dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -13,7 +14,11 @@
   ],
   "author": "Robert Seidler",
   "license": "ISC",
+  "repository": "https://github.com/RobertSeidler/wc-grid-table.git",
   "devDependencies": {
     "browserify": "^16.5.0"
+  },
+  "dependencies": {
+    "lodash.debounce": "^4.0.8"
   }
 }

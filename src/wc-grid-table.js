@@ -1,46 +1,47 @@
-export function regexFilter(filterInput, testValue){
-  let negate = filterInput.substring(0, 3) === '!!!';
-  filterInput = negate ? filterInput.substring(3) : filterInput;
-  let matches = testValue.toString().match(new RegExp(filterInput, 'i'));
-  let result = Boolean(matches) && matches.length > 0;
-  return negate ? !result : result;
-}
-
-export function textFilter(filterInput, testValue){
-  let negate = filterInput.substring(0, 3) === '!!!';
-  filterInput = negate ? filterInput.substring(3) : filterInput;
-  let match = testValue.toString().toUpperCase().includes(filterInput.toUpperCase());
-  return negate ? !match : match;
-}
-
-export function compareNumbers(a, b){
-  if (a == undefined) return 1;
-  if (b == undefined) return -1;
-  return a - b;
-}
-
-export function compareText(a, b){
-  let result = 0;
-  if (a == undefined) return 1;
-  if (b == undefined) return -1;
-  if (a > b) result = -1;
-  if (a < b) result = 1;
-  return result;
-}
-
-export function chooseSortsCompareFn(data, column){
-  if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
-    return compareNumbers
-  } else {
-    return compareText
+module.exports = (function(){
+  function regexFilter(filterInput, testValue){
+    let negate = filterInput.substring(0, 3) === '!!!';
+    filterInput = negate ? filterInput.substring(3) : filterInput;
+    let matches = testValue.toString().match(new RegExp(filterInput, 'i'));
+    let result = Boolean(matches) && matches.length > 0;
+    return negate ? !result : result;
   }
-}
+   
+  
+  function textFilter(filterInput, testValue){
+    let negate = filterInput.substring(0, 3) === '!!!';
+    filterInput = negate ? filterInput.substring(3) : filterInput;
+    let match = testValue.toString().toUpperCase().includes(filterInput.toUpperCase());
+    return negate ? !match : match;
+  }
+  
+  function compareNumbers(a, b){
+    if (a == undefined) return 1;
+    if (b == undefined) return -1;
+    return a - b;
+  }
+  
+  function compareText(a, b){
+    let result = 0;
+    if (a == undefined) return 1;
+    if (b == undefined) return -1;
+    if (a > b) result = -1;
+    if (a < b) result = 1;
+    return result;
+  }
+  
+  function chooseSortsCompareFn(data, column){
+    if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
+      return compareNumbers
+    } else {
+      return compareText
+    }
+  }
+  
+  function defineCustomElement(TableComponent){
+    customElements.define('wc-grid-table', TableComponent);
+  }
 
-export function defineCustomElement(TableComponent){
-  customElements.define('wc-grid-table', TableComponent);
-}
-
-export const TableComponent = (function(){
   function setUpSorting(element, column, table){
     element.addEventListener('click', (event) => {
       if(table.sortedBy.length > 0){
@@ -289,8 +290,6 @@ export const TableComponent = (function(){
     }
   }
 
-  return TableComponent;
+  return {regexFilter, textFilter, compareNumbers, compareText, chooseSortsCompareFn, defineCustomElement, TableComponent};
 })()
-
-
 
