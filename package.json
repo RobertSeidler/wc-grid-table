@@ -1,0 +1,19 @@
+{
+  "name": "wc-grid-table",
+  "version": "1.0.0",
+  "description": "a table component implemented with css-grid and webcomponents.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "table",
+    "webcomponent",
+    "grid"
+  ],
+  "author": "Robert Seidler",
+  "license": "ISC",
+  "devDependencies": {
+    "browserify": "^16.5.0"
+  }
+}
