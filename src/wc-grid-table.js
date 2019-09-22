@@ -1,4 +1,20 @@
+/**
+ * Project: wc-grid-table
+ * Repository: https://github.com/RobertSeidler/wc-grid-table
+ * Auther: Robert Seidler
+ * Email: Robert.Seidler1@googlemail.com 
+ * License: ISC
+ */
+
+try{
+  var css = require('./wc-grid-table.css');
+} catch(err){
+  console.warn('browserify-css require failed. You might need to link wc-grid-table.css.')
+}
+
+
 module.exports = (function(){
+  // Closure, so that only functions I want to expose are getting exposed.
 
   /**
    * Transform the filter input into a RegExp, to let the user have a powerfull way to filter in the table.
@@ -71,7 +87,7 @@ module.exports = (function(){
    * The chooseSortCompareFn as well as the compareNumbers and compareText functions can be replaced by custom ones.
    * chooseSortCompareFn -> TableComponent.customChooseSortsCompareFn
    * 
-   * @param {TableComponent} table the instance of TableComponent active.
+   * @param {TableComponent} table the active instance of TableComponent.
    * @param {Array<Object>} data 
    * @param {string} column the column name (header) for which a compare function is to choose. 
    */
@@ -88,7 +104,7 @@ module.exports = (function(){
    * 
    * @param {class} TableComponent 
    */
-  function defineCustomElement(TableComponent){
+  function defineCustomElement(){
     customElements.define('wc-grid-table', TableComponent);
   }
 
@@ -129,9 +145,9 @@ module.exports = (function(){
   function createHeader(table){
     table.header.forEach( (column, columnIndex) => {
       let col_header = document.createElement('div');
-      col_header.classList.add('header')
-      col_header.classList.add(`column_${column}`)
-      col_header.classList.add('cell')
+      col_header.classList.add('wgt-header')
+      col_header.classList.add(`wgt-column_${column}`)
+      col_header.classList.add('wgt-cell')
       setUpSorting(col_header, column, table)
       col_header.innerHTML = column;
       table.append(col_header)
@@ -143,10 +159,10 @@ module.exports = (function(){
       let filter_container = document.createElement('div');
       let filter_input = document.createElement('input');
       filter_input.type = 'text';
-      filter_input.classList.add('filter_input');
+      filter_input.classList.add('wgt-filter_input');
       filter_input.value = filter[column] ? filter[column] : '';
       filter_input.addEventListener('input', event => filterChanged.bind(null, table, column)(event))
-      filter_container.classList.add('filter_cell', `filter_cell_${column}`);
+      filter_container.classList.add('wgt-filter_cell', `wgt-filter_cell_${column}`);
       filter_container.append(filter_input);
 
       table.append(filter_container);
@@ -155,12 +171,12 @@ module.exports = (function(){
 
   function createFooter(table, data){
     let footer = document.createElement('div');
-    footer.classList.add('footer')
+    footer.classList.add('wgt-footer')
     footer.style.gridColumn = `1 / ${table.header.length + 1}`
 
     let total_rows = document.createElement('div');
     total_rows.innerHTML = `Total: ${data.length}`;
-    total_rows.classList.add('footer_cell', 'cell')
+    total_rows.classList.add('wgt-footer_cell', 'wgt-cell')
     footer.append(total_rows)
 
     table.append(footer)
@@ -170,7 +186,7 @@ module.exports = (function(){
     data.forEach((row, rowIndex) => {
       table.header.forEach( (column, columnIndex) => {
         let cell = document.createElement('div');
-        cell.classList.add('cell', 'data_cell', `column_${column}`, `row_${rowIndex}`, `zebra_${rowIndex % 2}`)
+        cell.classList.add('wgt-cell', 'wgt-data_cell', `wgt-column_${column}`, `wgt-row_${rowIndex}`, `wgt-zebra_${rowIndex % 2}`)
         // cell.classList.add()
         // cell.classList.add()
         cell.innerHTML = row[column] != undefined ? row[column] : '';
@@ -204,7 +220,7 @@ module.exports = (function(){
         conditionalColumnStyle.forEach((conditionalStyle) => {
           if(conditionalStyle.condition(data, column)){
             styleElement.innerHTML += `
-              div.column_${column}.data_cell {
+              div.wgt-column_${column}.wgt-data_cell {
                 ${conditionalStyle.styles.join('\n')}
               }
             `
@@ -341,7 +357,7 @@ module.exports = (function(){
      * Called when table is added to DOM. Doesn't need to be called manually.
      */
     connectedCallback(){
-      this.classList.add('grid-container')
+      this.classList.add('wgt-grid-container')
       if(!this.sortedData && this.data) this.sortedData = this.data;
       drawTable(this)
     }
@@ -392,7 +408,7 @@ module.exports = (function(){
      * Force a refresh, in case the data has changed. Alternatively you can call TableComponent.setData(newData).
      */
     redrawData(){
-      let dataElements = this.root_document.querySelectorAll('div.data_cell, div.footer');
+      let dataElements = this.root_document.querySelectorAll('div.wgt-data_cell, div.wgt-footer');
       dataElements.forEach(element => this.removeChild(element), this);
       if (this.data){
         this.displayedData = drawData(this);
