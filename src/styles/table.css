@@ -17,6 +17,7 @@
 .wgt-header {
   font-weight: bold;
   position: sticky;
+  box-sizing: border-box;
   top: 0px;
   border-bottom: 1px solid lightgray;
 }
@@ -34,6 +35,7 @@
   padding-left: 5px;
   padding-right: 5px;
   font-size: 1rem;
+  border: 1px solid lightgray;
 }
 
 .wgt-cell {

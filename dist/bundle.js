@@ -231,6 +231,7 @@ module.exports = (function(){
       setUpSorting(col_header, column, table)
       col_header.innerHTML = column;
       table.append(col_header)
+      console.log(col_header.clientHeight)
     });
   }
 
