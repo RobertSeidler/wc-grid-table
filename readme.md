@@ -86,13 +86,13 @@ The following functions are exposed on the wgt element (documented in there resp
 
 The following properties can be accessed / set directly on wgt element:
 * root_document - either document or the connected shadowRoot
-* conditionalColumnStyle - an object with keys ["condition", "styles"] where condition is a function "(data : Array<Object> , column : string) => Boolean" and styles is
-  an Array of strings with styles, that should apply when "condition" returns true for a column.
+* conditionalColumnStyle - an object with keys [`condition`, `styles`] where condition is a function `(data : Array<Object> , column : string) => Boolean` and styles is
+  an Array of strings with styles, that should apply when `condition` returns true for a column.
   Can be used to style a column in dependency of their data. 
 * conditionalColumnOptions - an object with options concerning conditionalColumnStyle. Available Options:
   * active: Boolean
 * formatter - an Object with column names as keys, containing lists of formatter functions, that should be applied before displaing a table value. Formatter functions
-  have this signature: "(value, rowIndex, completeData) => any". Formatter get applied in the sequence they are in the list (leftmost function (2nd from left (3rd ...))).
+  have this signature: `(value, rowIndex, completeData) => any`. Formatter get applied in the sequence they are in the list (leftmost function (2nd from left (3rd ...))).
 * formatterOptions - an object with options concerning formatter. Available Options:
   * active: Boolean
 * filter - an Object with column names as keys, containing strings which correspond to the filter input values in the ui. 
@@ -101,7 +101,7 @@ The following properties can be accessed / set directly on wgt element:
   * active: Boolean
 * customFilterFunction - a function that can override default filter behaviour (regexFilter). Arguments are filter input values and value to test against as strings.
   The expected return is a filtered data Array.
-* sortedBy - an Array of Objects describing sorting. Keys are col - column name sorted - and dir - the sort direction (one of ["asc", "desc"]). Sorting is kept after each
+* sortedBy - an Array of Objects describing sorting. Keys are col - column name sorted - and dir - the sort direction (one of [`asc`, `desc`]). Sorting is kept after each
   sorting operation, so that primary, secondary, tertiary, ... sorting is possible.
 * sortOptions - an object with options concerning sorting. Available Options:
   * active: Boolean
