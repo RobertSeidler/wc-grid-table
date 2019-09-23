@@ -1,5 +1,7 @@
 # wc-grid-table
 
+[codepen](https://codepen.io/ropp90/pen/zYOybYM)
+
 ## Description
 
 wc-grid-table (short: wgt) is a Free and Open-Source, CSS-Grid, Table WebComponent. The goal of this WebComponent is high customizability and a low barrier to entry. 
