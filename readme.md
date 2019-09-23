@@ -7,7 +7,17 @@ It uses no dependencys (lodash.debounce as optional plugin) and is only around 7
 
 ## Installation
 
-TODO: publish on npm
+Install via npm:
+
+```bash
+npm install wc-grid-table
+```
+
+Use via CDN:
+
+```html
+<scirpt src="https://unpkg.com/wc-grid-table@1.0.3/dist/standalone/bundle.min.js"></script>
+```
 
 ## Build from Source
 
@@ -31,7 +41,7 @@ Include it in your page:
 ```html
 <body>
   ...
-  <script src="dist/standalone/bundle.js"></script>
+  <script src="https://unpkg.com/wc-grid-table@1.0.3/dist/standalone/bundle.min.js"></script>
 </body>
 ```
 
