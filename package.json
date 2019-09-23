@@ -2,7 +2,7 @@
   "name": "wc-grid-table",
   "version": "1.0.1",
   "description": "A table component implemented with css-grid and webcomponents.",
-  "main": "dist/wc-grid-table.js",
+  "main": "dist/standalone/bundle.min.js",
   "scripts": {
     "copy_public": "cp src/public/* dist && cp src/example1/* dist/example1 && cp src/standalone/* dist/standalone && cp src/styles/* dist/styles",
     "build": "browserify -t browserify-css src/wc-grid-table.js > dist/bundle.js",
