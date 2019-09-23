@@ -6,12 +6,8 @@
  * License: ISC
  */
 
-try{
-  var css = require('./wc-grid-table.css');
-} catch(err){
-  console.warn('browserify-css require failed. You might need to link wc-grid-table.css.')
-}
 
+require('./wc-grid-table.css');
 
 module.exports = (function(){
   // Closure, so that only functions I want to expose are getting exposed.

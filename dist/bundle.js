@@ -76,7 +76,7 @@ module.exports = {
 };
 
 },{}],2:[function(require,module,exports){
-var css = "/* body {\r\n  font: arial, sans-serif;\r\n} */\n.wgt-grid-container {\n  display: grid;\n  position: absolute;\n  max-height: 500px;\n  overflow-y: scroll;\n  background: lightgray;\n  /* grid-gap: 1px; */\n  /* grid-row-gap: 2px; */\n  grid-column-gap: 2px;\n  border: 1px solid lightgray;\n}\n.wgt-header {\n  font-weight: bold;\n  position: sticky;\n  top: 0px;\n  border-bottom: 1px solid lightgray;\n}\n.wgt-filter_cell {\n  position: sticky;\n  top: 40px;\n}\n.wgt-filter_input {\n  box-sizing: border-box;\n  width: 100%;\n  height: 100%;\n  text-align: center;\n  padding-left: 5px;\n  padding-right: 5px;\n  font-size: 1rem;\n}\n.wgt-cell {\n  box-sizing: border-box;\n  font-size: 1rem;\n  padding-left: 20px;\n  padding-right: 20px;\n  padding-top: 10px;\n  padding-bottom: 10px;\n  background: white;\n  /* border: 2px solid lightgray; */\n}\n.wgt-zebra_1 {\n  background: white;\n}\n.wgt-zebra_0 {\n  background: rgb(230, 230, 230);\n}\n.wgt-footer {\n  display: grid;\n  position: sticky;\n  bottom: 0px;\n  background: white;\n  border-top: 1px solid lightgray;\n  grid-template-rows: 1fr;\n  grid-template-columns: 1fr 1fr 1fr;\n}\n.wgt-footer_cell {\n  border-right: 1px solid lightgray;\n}\n"; (require("browserify-css").createStyle(css, { "href": "src\\wc-grid-table.css" }, { "insertAt": "bottom" })); module.exports = css;
+var css = "/* body {\r\n  font: arial, sans-serif;\r\n} */\n.wgt-grid-container {\n  display: grid;\n  position: absolute;\n  max-height: 500px;\n  overflow-y: scroll;\n  background: lightgray;\n  /* grid-gap: 1px; */\n  /* grid-row-gap: 2px; */\n  grid-column-gap: 2px;\n  border: 1px solid lightgray;\n}\n.wgt-header {\n  font-weight: bold;\n  position: sticky;\n  box-sizing: border-box;\n  top: 0px;\n  border-bottom: 1px solid lightgray;\n}\n.wgt-filter_cell {\n  position: sticky;\n  top: 40px;\n}\n.wgt-filter_input {\n  box-sizing: border-box;\n  width: 100%;\n  height: 100%;\n  text-align: center;\n  padding-left: 5px;\n  padding-right: 5px;\n  font-size: 1rem;\n  border: 1px solid lightgray;\n}\n.wgt-cell {\n  box-sizing: border-box;\n  font-size: 1rem;\n  padding-left: 20px;\n  padding-right: 20px;\n  padding-top: 10px;\n  padding-bottom: 10px;\n  background: white;\n  /* border: 2px solid lightgray; */\n}\n.wgt-zebra_1 {\n  background: white;\n}\n.wgt-zebra_0 {\n  background: rgb(230, 230, 230);\n}\n.wgt-footer {\n  display: grid;\n  position: sticky;\n  bottom: 0px;\n  background: white;\n  border-top: 1px solid lightgray;\n  grid-template-rows: 1fr;\n  grid-template-columns: 1fr 1fr 1fr;\n}\n.wgt-footer_cell {\n  border-right: 1px solid lightgray;\n}\n"; (require("browserify-css").createStyle(css, { "href": "src\\wc-grid-table.css" }, { "insertAt": "bottom" })); module.exports = css;
 },{"browserify-css":1}],3:[function(require,module,exports){
 /**
  * Project: wc-grid-table
@@ -86,12 +86,8 @@ var css = "/* body {\r\n  font: arial, sans-serif;\r\n} */\n.wgt-grid-container 
  * License: ISC
  */
 
-try{
-  var css = require('./wc-grid-table.css');
-} catch(err){
-  console.warn('browserify-css require failed. You might need to link wc-grid-table.css.')
-}
 
+require('./wc-grid-table.css');
 
 module.exports = (function(){
   // Closure, so that only functions I want to expose are getting exposed.
