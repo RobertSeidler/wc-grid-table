@@ -109,6 +109,12 @@ The following properties can be accessed / set directly on wgt element:
   is a function to compare the values of this column.
 * customCompareNumbers / customCompareText - functions to replace default sort behavior corresponing to sorting numbers / text. Like default js CompareFn used in Array.prototype.sort
 
+The following Attributes can be set, to hide some parts of the ui:
+* noheader - hide header row
+* nofilter - hide filter row
+* nofooter - hide footer row
+
+
 More to come.
 
 ## License
