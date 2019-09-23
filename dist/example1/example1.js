@@ -14,6 +14,7 @@ table.formatter.Rabattsatz = [percentFormatter];
 try{
   const debounce = require('lodash.debounce');
   table.setDebounceFn(debounce, [500, {leading: true, trailing: false, maxWait: 1000}], [500, {leading: false, trailing: true, maxWait: 1000}]);
+  console.info('Optional Dependency lodash.debounce was loaded successfully.')
 } catch(err){
   console.error(err)
   console.warn('Optional Dependency lodash.debounce doesn\'t seem to be installed, so event functions are not going to be debounced.');

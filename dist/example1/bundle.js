@@ -801,10 +801,46 @@ module.exports = (function(){
     return filteredData;
   }
 
+  /**
+   * TableComponent is the implementation of wc-grid-table (short: wgt).
+   * 
+   * The following functions are exposed when creating a wgt HTML element (documented in there respective docstring):
+   *  - useDefaultOptions()
+   *  - connectedCallback()
+   *  - setDebounceFn(debounceFn, sortDebounceOptions, filterDebouncedOptions)
+   *  - setData(data)
+   *  - getDisplayedData()
+   *  - getOriginalData()
+   *  - redrawData()
+   * 
+   * The following properties can be accessed directly:
+   *  - root_document - either document or the connected shadowRoot
+   *  - conditionalColumnStyle - an object with keys ["condition", "styles"] where condition is a function "(data : Array<Object> , column : string) => Boolean" and styles is
+   *    an Array of strings with styles, that should apply when "condition" returns true for a column.
+   *    Can be used to style a column in dependency of their data. 
+   *  - conditionalColumnOptions - an object with options concerning conditionalColumnStyle. Available Options:
+   *      - active: Boolean
+   *  - formatter - an Object with column names as keys, containing lists of formatter functions, that should be applied before displaing a table value. Formatter functions
+   *    have this signature: "(value, rowIndex, completeData) => any". Formatter get applied in the sequence they are in the list (leftmost function (2nd from left (3rd ...))).
+   *  - formatterOptions - an object with options concerning formatter. Available Options:
+   *      - active: Boolean
+   *  - filter - an Object with column names as keys, containing strings which correspond to the filter input values in the ui. 
+   *    Those get validated by customFilterFunction / regexFilter.
+   *  - filterOptions - an object with options concerning filter. Available Options:
+   *      - active: Boolean
+   *  - customFilterFunction - a function that can override default filter behaviour (regexFilter). Arguments are filter input values and value to test against as strings.
+   *    The expected return is a filtered data Array.
+   *  - sortedBy - an Array of Objects describing sorting. Keys are col - column name sorted - and dir - the sort direction (one of ["asc", "desc"]). Sorting is kept after each
+   *    sorting operation, so that primary, secondary, tertiary, ... sorting is possible.
+   *  - sortOptions - an object with options concerning sorting. Available Options:
+   *      - active: Boolean
+   *  - customChooseSortsCompareFn - a function maps columns to sorting behavior. Expected return for given (table: TableComponent instance, data: Array<Object>, column: string)
+   *    is a function to compare the values of this column.
+   *  - customCompareNumbers / customCompareText - functions to replace default sort behavior corresponing to sorting numbers / text. Like default js CompareFn used in Array.prototype.sort
+   */
   class TableComponent extends HTMLElement{
     constructor(){
       super();
-
       this.useDefaultOptions();
     }
 
