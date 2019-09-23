@@ -75,6 +75,8 @@ document.querySelector('body').append(table);
 
 ### Customization
 
+#### Methods
+
 The following functions are exposed on the wgt element (documented in there respective docstring):
 * useDefaultOptions()
 * connectedCallback()
@@ -83,6 +85,8 @@ The following functions are exposed on the wgt element (documented in there resp
 * getDisplayedData()
 * getOriginalData()
 * redrawData()
+
+#### Propertys
 
 The following properties can be accessed / set directly on wgt element:
 * root_document - either document or the connected shadowRoot
@@ -108,7 +112,8 @@ The following properties can be accessed / set directly on wgt element:
 * customChooseSortsCompareFn - a function maps columns to sorting behavior. Expected return for given (table: TableComponent instance, data: Array<Object>, column: string)
   is a function to compare the values of this column.
 * customCompareNumbers | customCompareText - functions to replace default sort behavior corresponing to sorting numbers / text. Like default js CompareFn used in Array.prototype.sort
-  
+
+#### Attributes
 
 The following Attributes can be set, to hide some parts of the ui:
 * noheader: hide header row
