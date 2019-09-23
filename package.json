@@ -12,7 +12,7 @@
     "build_exmpl1": "browserify -t browserify-css src/example1/example1.js > dist/example1/bundle.js",
     "build_exmpl1_min": "browserify -p tinyify -t browserify-css src/example1/example1.js > dist/example1/bundle.min.js",
     "build_all": "npm run build && npm run build_min && npm run build_standalone && npm run build_standalone_min && npm run build_exmpl1 && npm run build_exmpl1_min && npm run copy_public",
-    "publish_all": "npm run build_all && git add * && git commit && for /f \"delims=\" %i in ('npm version patch') do set VERS=%i && git add package.json && git commit -m \"patch version %VERS%\" && git push && npm publish"
+    "publish_all": "npm run build_all && git add * && git commit && npm version patch && git push && npm publish"
   },
   "keywords": [
     "table",
