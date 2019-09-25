@@ -6,7 +6,6 @@
  * License: ISC
  */
 
-
 require('./wc-grid-table.css');
 
 module.exports = (function(){
@@ -73,8 +72,8 @@ module.exports = (function(){
     let result = 0;
     if (a == undefined) return 1;
     if (b == undefined) return -1;
-    if (a > b) result = -1;
-    if (a < b) result = 1;
+    if (a.toString() > b.toString()) result = -1;
+    if (a.toString() < b.toString()) result = 1;
     return result;
   }
   

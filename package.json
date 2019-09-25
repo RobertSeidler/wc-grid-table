@@ -13,7 +13,8 @@
     "build_exmpl1": "browserify -t browserify-css src/example1/example1.js > dist/example1/bundle.js",
     "build_exmpl1_min": "browserify -p tinyify -t browserify-css src/example1/example1.js > dist/example1/bundle.min.js",
     "build_all": "npm run setup_folder && npm run build && npm run build_min && npm run build_standalone && npm run build_standalone_min && npm run build_exmpl1 && npm run build_exmpl1_min && npm run copy_public",
-    "publish_patch": "npm run build_all && git add * && git commit && npm version patch && git push && npm publish && git push --tags"
+    "publish_patch": "npm run test && npm run build_all && git add * && git commit && npm version patch && git push && npm publish && git push --tags",
+    "test": "jest"
   },
   "keywords": [
     "table",
@@ -26,6 +27,8 @@
   "devDependencies": {
     "browserify": "^16.5.0",
     "browserify-css": "^0.15.0",
+    "jest": "^24.9.0",
+    "jest-css-modules": "^2.1.0",
     "tinyify": "^2.5.1"
   },
   "optionalDependencies": {
