@@ -302,6 +302,39 @@ module.exports = (function(){
     return filteredData;
   }
 
+  function defineHiddenProperties(table, props){
+    props.forEach(prop => Object.defineProperty(table, prop, {
+      enumerable: false,
+      writable: true    
+    }))
+  }
+
+  function defineOptionProperties(table, props){
+    props.forEach(prop => 
+      Object.defineProperty(table, prop, {
+        set(newValue){
+          table.options[prop] = newValue;
+        },
+        get(){
+          return table.options[prop];
+        },
+        enumerable: true
+      })
+    );
+  }
+
+  const funRegex = /^(?<function>(?:function\s*.*){0,1}\((?<args>[^\(\{\[\=\>]*)\)\s*(?:=>|\{)\s*[\{\(]{0,1}.*[\}\)]{0,1})$/gys;
+
+  function deserializeFunction(funStr){
+    let match = funRegex.exec(funStr);
+    let args = match.groups.args.split(',').map(str => str.trim())
+    return new Function(...args, `return (${funStr.toString()})(${args.join(', ')})`)
+  }
+
+  function serializeFunction(fun){
+    return fun.toString();
+  }
+
   /**
    * TableComponent is the implementation of wc-grid-table (short: wgt).
    * 
@@ -342,6 +375,35 @@ module.exports = (function(){
   class TableComponent extends HTMLElement{
     constructor(){
       super();
+
+      defineHiddenProperties(this, [
+        'options',
+        'root_document',
+        'optionalDebounceFn',
+        'sortedData',
+        'data',
+        'header',
+        'displayedData',
+        'drawOptionals',
+      ]);
+
+      this.options = {}
+
+      defineOptionProperties(this, [
+        'conditionalColumnStyle',
+        'conditionalColumnOptions',
+        'formatter',
+        'formatterOptions',
+        'filter',
+        'filterOptions',
+        'customFilterFunction',
+        'sortedBy',
+        'sortOptions',
+        'customCompareNumbers',
+        'customCompareText',
+        'customChooseSortsCompareFn',
+      ])
+
       this.useDefaultOptions();
     }
 
@@ -383,6 +445,21 @@ module.exports = (function(){
       this.customChooseSortsCompareFn = chooseSortsCompareFn;
       
       this.drawOptionals = {}
+    }
+
+    serializeOptions(){
+      return JSON.stringify(this.options, (key, value) => value instanceof Function ? serializeFunction(value) : value)
+    }
+
+    loadSerializedOptions(serializedOptions){
+      this.options = JSON.parse(serializedOptions, (key, value) => {
+        if (value.toString().match(funRegex)) {
+          return deserializeFunction(value)
+        } else {
+          return value
+        }
+      });
+      this.redrawData();
     }
 
     /**
@@ -442,6 +519,9 @@ module.exports = (function(){
     redrawData(){
       let dataElements = this.root_document.querySelectorAll('div.wgt-data_cell, div.wgt-footer');
       dataElements.forEach(element => this.removeChild(element), this);
+      this.header.forEach(filterKey => {
+        this.root_document.querySelector(`.wgt-filter_cell_${filterKey}>input`).value = this.filter[filterKey] ? this.filter[filterKey] : '';
+      })
       if (this.data){
         this.displayedData = drawData(this);
         if (this.drawOptionals.footer) createFooter(this, this.displayedData);
