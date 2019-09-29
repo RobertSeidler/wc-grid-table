@@ -138,6 +138,7 @@ module.exports = (function(){
   }
 
   function createHeader(table){
+    let col_height = 40;
     table.header.forEach( (column, columnIndex) => {
       let col_header = document.createElement('div');
       col_header.classList.add('wgt-header')
@@ -146,8 +147,14 @@ module.exports = (function(){
       setUpSorting(col_header, column, table)
       col_header.innerHTML = column;
       table.append(col_header)
-      console.log(col_header.clientHeight)
+      col_height = col_header.clientHeight;
     });
+    tmp_style = document.createElement('style');
+    tmp_style.innerHTML = `
+      .wgt-filter_cell {
+        top: ${col_height}px;
+      }`;
+    table.root_document.querySelector('head').append(tmp_style);
   }
 
   function createFilter(table, header, filter){
