@@ -107,9 +107,9 @@ module.exports = (function(){
     if(table.sortedBy.length > 0){
       if(table.sortedBy[0].col === column){
         table.sortedBy[0].dir = table.sortedBy[0].dir === "asc" ? "desc" : "asc";
-        table.sortedData = [].concat(table.sortedData.filter(entry => entry[column] != undefined).reverse(), table.sortedData.filter(entry => entry[column] == undefined));
-        table.redrawData();
-        return;
+        // table.sortedData = [].concat(table.sortedData.filter(entry => entry[column] != undefined).reverse(), table.sortedData.filter(entry => entry[column] == undefined));
+        // table.redrawData();
+        // return;
       } else {
         table.sortedBy.unshift({
           col: column,
@@ -122,9 +122,6 @@ module.exports = (function(){
         dir: "asc"
       })
     }
-    table.sortedData = table.sortedData.sort((a, b) => {
-      return table.customChooseSortsCompareFn(table, table.sortedData, column)(a[column], b[column])
-    })
     table.redrawData()
   }
 
@@ -235,6 +232,25 @@ module.exports = (function(){
     }
   }
 
+  function applySorting(table, column){
+    // if(column) {
+    //   return table.sortedData.sort((a, b) => {
+    //     return table.customChooseSortsCompareFn(table, table.sortedData, column)(a[column], b[column])
+    //   })
+    // } else 
+    if(table.sortedBy && table.sortedBy.length > 0) {
+      column = table.sortedBy[0].col;
+      let sorted = table.data.sort((a, b) => {
+        return table.customChooseSortsCompareFn(table, table.data, column)(a[column], b[column])
+      })
+      if(table.sortedBy[0].dir === 'desc')
+        sorted = [].concat(sorted.filter(entry => entry[column] != undefined).reverse(), sorted.filter(entry => entry[column] == undefined));
+      return sorted;
+    } else {
+      return table.data;
+    }
+  }
+
   function applyFilter(table, data, header, filter, options){
     if(options.active){
       return data.filter(row => 
@@ -298,6 +314,7 @@ module.exports = (function(){
   }
 
   function drawData(table){
+    table.sortedData = applySorting(table);
     applyConditionalColumnStyling(table, table.sortedData, table.header, table.conditionalColumnStyle, table.conditionalColumnOptions);
     let formattedData = applyFormatter(table.sortedData, table.header, table.formatter, table.formatterOptions);
     let filteredData = applyFilter(table, formattedData, table.header, table.filter, table.filterOptions);
@@ -460,12 +477,13 @@ module.exports = (function(){
 
     loadSerializedOptions(serializedOptions){
       this.options = JSON.parse(serializedOptions, (key, value) => {
-        if (value.toString().match(funRegex)) {
+        if (!(value instanceof Array)  && value.toString().match(funRegex)) {
           return deserializeFunction(value)
         } else {
           return value
         }
       });
+      // this.sortedData = applySorting(this);
       this.redrawData();
     }
 
