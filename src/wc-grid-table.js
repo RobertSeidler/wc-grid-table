@@ -126,7 +126,7 @@ module.exports = (function(){
   }
 
   function filterChanged(table, column, event){
-    table.filter[column] = event.srcElement.value;
+    table.filter[column] = event.srcElement.textContent;
     table.redrawData();
   }
 
@@ -149,7 +149,7 @@ module.exports = (function(){
     tmp_style = document.createElement('style');
     tmp_style.innerHTML = `
       .wgt-filter_cell {
-        top: ${col_height}px;
+        top: ${col_height + 1}px;
       }`;
     table.root_document.querySelector('head').append(tmp_style);
   }
@@ -157,13 +157,14 @@ module.exports = (function(){
   function createFilter(table, header, filter){
     header.forEach(column => {
       let filter_container = document.createElement('div');
-      let filter_input = document.createElement('input');
-      filter_input.type = 'text';
-      filter_input.classList.add('wgt-filter_input');
-      filter_input.value = filter[column] ? filter[column] : '';
-      filter_input.addEventListener('input', event => filterChanged.bind(null, table, column)(event))
-      filter_container.classList.add('wgt-filter_cell', `wgt-filter_cell_${column}`);
-      filter_container.append(filter_input);
+      // let filter_input = document.createElement('input');
+      // filter_input.type = 'text';
+      // filter_input.classList.add('wgt-filter_input');
+      // filter_input.value = filter[column] ? filter[column] : '';
+      filter_container.addEventListener('input', event => filterChanged.bind(null, table, column)(event))
+      filter_container.classList.add('wgt-filter_cell', `wgt-filter_cell_${column}`, 'wgt-filter_input');
+      filter_container.contentEditable = 'true';
+      // filter_container.append(filter_input);
 
       table.append(filter_container);
     })
@@ -229,6 +230,24 @@ module.exports = (function(){
       })
 
       table.root_document.querySelector('head').append(styleElement);
+    }
+  }
+
+  function applyConditionalRowStyling(table, data, header, conditionalRowStyle, options){
+    if(options.active){
+      let row_style_element = document.createElement('style');
+      Object.keys(conditionalRowStyle).forEach(column => {
+        data.forEach((row, row_index) => {
+          conditionalRowStyle[column].forEach(conditionalStyle => {
+            if(conditionalStyle.condition(row[column], row_index)){
+              row_style_element.innerHTML = `.column.row {\n`
+              row_style_element.innerHTML += conditionalStyle.styles.join('\n')
+              row_style_element.innerHTML += '\n}'
+            }
+          })
+        }) 
+      })
+      table.root_document.querySelector('head').append(row_style_element)
     }
   }
 
@@ -298,8 +317,11 @@ module.exports = (function(){
       table.header = generateHeader(table.data);
     }
 
-    if(table.drawOptionals.header && table.header){
+    if(table.header){
       table.style.gridTemplateColumns = `repeat(${table.header.length}, max-content)`;
+    }
+
+    if(table.drawOptionals.header && table.header){
       createHeader(table);
     }
     
@@ -315,7 +337,7 @@ module.exports = (function(){
 
   function drawData(table){
     table.sortedData = applySorting(table);
-    applyConditionalColumnStyling(table, table.sortedData, table.header, table.conditionalColumnStyle, table.conditionalColumnOptions);
+    applyConditionalColumnStyling(table, table.sortedData, table.header, table.conditionalColumnStyle, table.conditionalStyleOptions);
     let formattedData = applyFormatter(table.sortedData, table.header, table.formatter, table.formatterOptions);
     let filteredData = applyFilter(table, formattedData, table.header, table.filter, table.filterOptions);
     table.style.gridTemplateRows = `${
@@ -376,7 +398,7 @@ module.exports = (function(){
    *  - conditionalColumnStyle - an object with keys ["condition", "styles"] where condition is a function "(data : Array<Object> , column : string) => Boolean" and styles is
    *    an Array of strings with styles, that should apply when "condition" returns true for a column.
    *    Can be used to style a column in dependency of their data. 
-   *  - conditionalColumnOptions - an object with options concerning conditionalColumnStyle. Available Options:
+   *  - conditionalStyleOptions - an object with options concerning conditionalColumnStyle and conditionalRowStyle. Available Options:
    *      - active: Boolean
    *  - formatter - an Object with column names as keys, containing lists of formatter functions, that should be applied before displaing a table value. Formatter functions
    *    have this signature: "(value, rowIndex, completeData) => any". Formatter get applied in the sequence they are in the list (leftmost function (2nd from left (3rd ...))).
@@ -415,7 +437,8 @@ module.exports = (function(){
 
       defineOptionProperties(this, [
         'conditionalColumnStyle',
-        'conditionalColumnOptions',
+        'conditionalRowStyle',
+        'conditionalStyleOptions',
         'formatter',
         'formatterOptions',
         'filter',
@@ -441,11 +464,23 @@ module.exports = (function(){
 
       this.conditionalColumnStyle = [
         {
-          "condition": (data, column) => (!Number.isNaN(data.reduce((col, cur) => (col += typeof cur[column] === "string" ? NaN : (cur[column] != undefined ? cur[column] : 0)), 0))),
-          "styles": ["text-align: right;"]
+          condition: (data, column) => (!Number.isNaN(data.reduce((col, cur) => (col += typeof cur[column] === "string" ? NaN : (cur[column] != undefined ? cur[column] : 0)), 0))),
+          styles: ["text-align: right;"]
         },
       ]
-      this.conditionalColumnOptions = {
+
+      this.conditionalRowStyle = {
+        Rabattsatz: [
+          {
+            condition: function(value, index){
+              return value == 0;
+            },
+            styles: ["background-color: red;"]
+          }
+        ]
+      }
+
+      this.conditionalStyleOptions = {
         "active": true,
       }
 
@@ -545,7 +580,7 @@ module.exports = (function(){
       let dataElements = this.root_document.querySelectorAll('div.wgt-data_cell, div.wgt-footer');
       dataElements.forEach(element => this.removeChild(element), this);
       this.header.forEach(filterKey => {
-        this.root_document.querySelector(`.wgt-filter_cell_${filterKey}>input`).value = this.filter[filterKey] ? this.filter[filterKey] : '';
+        this.root_document.querySelector(`.wgt-filter_cell_${filterKey}`).textContent = this.filter[filterKey] ? this.filter[filterKey] : '';
       })
       if (this.data){
         this.displayedData = drawData(this);
