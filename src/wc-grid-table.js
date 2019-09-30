@@ -16,16 +16,19 @@ module.exports = (function(){
    * Only rows where the tested value matches the RegExp, get displayed. 
    * Additionally you can prepend three exclamation marks ('!!!') to negate the RegExp, so that only rows that
    * don't match the RegExp are displayed. This is the default filter function.
-   * This function can be replaced by supplying your own function to TableComponent.customFilterFunction.
+   * This function can be replaced by supplying your own functions to TableComponent.filterOperations.
    * 
    * @param {string} filterInput the value of the filter text input field.
    * @param {string} testValue the table value to validate against.
    */
-  function regexFilter(filterInput, testValue){
-    let negate = filterInput.substring(0, 3) === '!!!';
-    filterInput = negate ? filterInput.substring(3) : filterInput;
-    let matches = testValue.toString().match(new RegExp(filterInput, 'i'));
-    let result = Boolean(matches) && matches.length > 0;
+  function regexFilter(negate, filterInput, testValue){
+    // let negate = filterInput.substring(0, 3) === '!!!';
+    // filterInput = negate ? filterInput.substring(3) : filterInput;
+    let result = false;
+    if(testValue != undefined){
+      let matches = testValue.toString().match(new RegExp(filterInput, 'i'));
+      result = Boolean(matches) && matches.length > 0;
+    }
     return negate ? !result : result;
   }
    
@@ -34,18 +37,34 @@ module.exports = (function(){
    * Only rows where the filter input is a substring of the tested value.
    * Additionally you can prepend three exclamation marks ('!!!') to negate the outcome, 
    * so that only rows that are not included in the table value are displayed.
-   * This function can replace by supplying it to TableComponent.customFilterFunction.
+   * This function can replace regexFilter by supplying it to TableComponent.filterOperations or overwriting
+   * regexFilter before use.
    * 
    * @param {string} filterInput the value of the filter text input field.
    * @param {string} testValue the table value to validate against.
    */
-  function textFilter(filterInput, testValue){
-    let negate = filterInput.substring(0, 3) === '!!!';
-    filterInput = negate ? filterInput.substring(3) : filterInput;
-    let match = testValue.toString().toUpperCase().includes(filterInput.toUpperCase());
-    return negate ? !match : match;
+  function textFilter(negate, filterInput, testValue){
+    // let negate = filterInput.substring(0, 3) === '!!!';
+    // filterInput = negate ? filterInput.substring(3) : filterInput;
+    let result = false;
+    if(testValue != undefined){
+      result = testValue.toString().toUpperCase().includes(filterInput.toUpperCase());
+    }
+    return negate ? !result : result;
   }
-  
+
+  function compareFilter(operation, filterInput, testValue){
+    let result = false;
+    if(testValue != undefined){
+      try{
+        result = operation(Number.parseFloat(filterInput), Number.parseFloat(testValue));
+      } catch (err){
+        result = operation(filterInput.toString(), testValue.toString());
+      }
+    }
+    return result;
+  }
+
   /**
    * Compare function for comparing numbers for sorting. Additionally undefined values are 
    * always the 'smaller' value, so that they get sorted to the bottom.
@@ -107,20 +126,33 @@ module.exports = (function(){
     if(table.sortedBy.length > 0){
       if(table.sortedBy[0].col === column){
         table.sortedBy[0].dir = table.sortedBy[0].dir === "asc" ? "desc" : "asc";
+        table.sortArrowElements[column].innerHTML = table.sortedBy[0].dir === "asc" ? "&uarr;" : "&darr;";
         // table.sortedData = [].concat(table.sortedData.filter(entry => entry[column] != undefined).reverse(), table.sortedData.filter(entry => entry[column] == undefined));
         // table.redrawData();
         // return;
       } else {
+        table.header.filter(header_key => header_key !== column).forEach(header_key => {
+          if(table.sortArrowElements[header_key].innerHTML !== '&#8693;') {
+            table.sortArrowElements[header_key].arrowAlphaColor = table.sortArrowElements[header_key].arrowAlphaColor * 0.5;
+            table.sortArrowElements[header_key].style.color = `rgb(0, 0, 0, ${table.sortArrowElements[header_key].arrowAlphaColor})`;
+          }
+        })
         table.sortedBy.unshift({
           col: column,
           dir: "asc"
         })
       }
+      table.sortArrowElements[column].innerHTML = table.sortedBy[0].dir === "asc" ? "&uarr;" : "&darr;";
+      table.sortArrowElements[column].arrowAlphaColor = 1;
+      table.sortArrowElements[column].style.color = `rgb(0, 0, 0, ${table.sortArrowElements[column].arrowAlphaColor})`;
     } else {
       table.sortedBy.push({
         col: column,
         dir: "asc"
-      })
+      });
+      table.sortArrowElements[column].innerHTML = "&uarr;";
+      table.sortArrowElements[column].arrowAlphaColor = 1;
+      table.sortArrowElements[column].style.color = `rgb(0, 0, 0, ${table.sortArrowElements[column].arrowAlphaColor})`;
     }
     table.redrawData()
   }
@@ -130,27 +162,61 @@ module.exports = (function(){
     table.redrawData();
   }
 
+  /**
+   * table.filterNegate[column] === undefined shall be equal to 'contains'.
+   * @param {*} table 
+   * @param {*} column 
+   * @param {*} filter_negate_element 
+   * @param {*} event 
+   */
+  function toggleFilterNegator(table, column, filter_negate_element, event){
+    let newOperation = table.activeFilterOperations[column];
+    if(newOperation === undefined) newOperation = table.filterOperations[0];
+    newOperation = table.filterOperations[(table.filterOperations.findIndex(element => element.name === newOperation.name) + 1) % table.filterOperations.length]
+    filter_negate_element.innerHTML = newOperation.char;
+    table.activeFilterOperations[column] = newOperation;
+    table.redrawData();
+  }
+
   function setUpSorting(element, column, table){
     element.addEventListener('click', (event) => onSortClick(table, column, event))
   }
 
   function createHeader(table){
-    let col_height = 40;
+    let col_height = 0;
     table.header.forEach( (column, columnIndex) => {
       let col_header = document.createElement('div');
       col_header.classList.add('wgt-header')
       col_header.classList.add(`wgt-column_${column}`)
       col_header.classList.add('wgt-cell')
-      setUpSorting(col_header, column, table)
+      // setUpSorting(col_header, column, table)
       col_header.innerHTML = column;
       table.append(col_header)
       col_height = col_header.clientHeight;
+
+      let sort_arrow = document.createElement('div');
+      sort_arrow.classList.add('arrow');
+      sort_arrow.innerHTML = '&#8693;';
+      table.sortArrowElements[column] = sort_arrow;
+      setUpSorting(sort_arrow, column, table)
+      col_header.append(sort_arrow)
+
     });
-    tmp_style = document.createElement('style');
+    createStickyFilterStyle(table, col_height);
+  }
+
+  function createStickyFilterStyle(table, col_height){
+    let tmp_style = table.root_document.querySelector('style.sticky_filter_offset')
+    if(!tmp_style){
+      tmp_style = document.createElement('style');
+      tmp_style.type = "text/css";
+      tmp_style.classList.add('sticky_filter_offset');
+    }
     tmp_style.innerHTML = `
       .wgt-filter_cell {
         top: ${col_height + 1}px;
-      }`;
+      }
+    `;    
     table.root_document.querySelector('head').append(tmp_style);
   }
 
@@ -161,11 +227,24 @@ module.exports = (function(){
       // filter_input.type = 'text';
       // filter_input.classList.add('wgt-filter_input');
       // filter_input.value = filter[column] ? filter[column] : '';
-      filter_container.addEventListener('input', event => filterChanged.bind(null, table, column)(event))
+      // filter_container.addEventListener('input', event => filterChanged.bind(null, table, column)(event))
       filter_container.classList.add('wgt-filter_cell', `wgt-filter_cell_${column}`, 'wgt-filter_input');
-      filter_container.contentEditable = 'true';
-      // filter_container.append(filter_input);
+      // filter_container.contentEditable = 'true';
 
+      let filter_input = document.createElement('div')
+      filter_input.addEventListener('input', event => filterChanged.bind(null, table, column)(event));
+      filter_input.classList.add('filter_input');
+      filter_input.contentEditable = 'true';
+
+      let filter_negate = document.createElement('div');
+      filter_negate.innerHTML = '&sube;';
+      filter_negate.classList.add('filter_negator');
+      filter_negate.addEventListener('click', event => toggleFilterNegator.bind(null, table, column, filter_negate)(event))
+      // filter_negate.style.position = 'absolute';
+      // filter_negate.style.
+      // filter_container.append(filter_input);
+      filter_container.append(filter_input);
+      filter_container.append(filter_negate);
       table.append(filter_container);
     })
   }
@@ -176,9 +255,16 @@ module.exports = (function(){
     footer.style.gridColumn = `1 / ${table.header.length + 1}`
 
     let total_rows = document.createElement('div');
-    total_rows.innerHTML = `Total: ${data.length}`;
+    total_rows.innerHTML = `Total: ${table.data.length}`;
     total_rows.classList.add('wgt-footer_cell', 'wgt-cell')
     footer.append(total_rows)
+
+    if(table.data.length !== data.length){
+      let filtered_row_count = document.createElement('div');
+      filtered_row_count.innerHTML = `Filtered: ${data.length}`;
+      filtered_row_count.classList.add('wgt-footer_cell', 'wgt-cell')
+      footer.append(filtered_row_count)
+    }
 
     table.append(footer)
   }
@@ -214,13 +300,18 @@ module.exports = (function(){
 
   function applyConditionalColumnStyling(table, data, header, conditionalColumnStyle, options){
     if(options.active){
-      let styleElement = document.createElement('style');
-      styleElement.type = "text/css";
-
+      let column_style_element = table.root_document.querySelector('style.column_styles');
+      if(!column_style_element){
+        column_style_element = document.createElement('style');
+        column_style_element.type = "text/css";
+        column_style_element.classList.add('column_styles');
+        table.root_document.querySelector('head').append(column_style_element);
+      }
+      column_style_element.innerHTML = '';
       header.forEach(column => {
         conditionalColumnStyle.forEach((conditionalStyle) => {
           if(conditionalStyle.condition(data, column)){
-            styleElement.innerHTML += `
+            column_style_element.innerHTML += `
               div.wgt-column_${column}.wgt-data_cell {
                 ${conditionalStyle.styles.join('\n')}
               }
@@ -228,26 +319,31 @@ module.exports = (function(){
           }
         })
       })
-
-      table.root_document.querySelector('head').append(styleElement);
     }
   }
 
   function applyConditionalRowStyling(table, data, header, conditionalRowStyle, options){
     if(options.active){
-      let row_style_element = document.createElement('style');
+      let row_style_element = table.root_document.querySelector('style.row_styles');
+      if(!row_style_element){
+        row_style_element = document.createElement('style');
+        row_style_element.type = "text/css";
+        row_style_element.classList.add('row_styles');
+        table.root_document.querySelector('head').append(row_style_element);
+      }
+      row_style_element.innerHTML = '';
       Object.keys(conditionalRowStyle).forEach(column => {
         data.forEach((row, row_index) => {
           conditionalRowStyle[column].forEach(conditionalStyle => {
             if(conditionalStyle.condition(row[column], row_index)){
-              row_style_element.innerHTML = `.column.row {\n`
+              row_style_element.innerHTML += `div${conditionalStyle.fullrow ? '' : `.wgt-column_${column}`}.wgt-row_${row_index} {\n`
               row_style_element.innerHTML += conditionalStyle.styles.join('\n')
               row_style_element.innerHTML += '\n}'
             }
           })
         }) 
       })
-      table.root_document.querySelector('head').append(row_style_element)
+      // table.root_document.querySelector('head').append(row_style_element)
     }
   }
 
@@ -275,7 +371,8 @@ module.exports = (function(){
       return data.filter(row => 
         header.map(column => {
           if(filter[column]){
-            return table.customFilterFunction(filter[column], row[column]);
+            if (!table.activeFilterOperations[column]) table.activeFilterOperations[column] = table.filterOperations[0];
+            return table.activeFilterOperations[column].fn(filter[column], row[column]);
           }
           else return true;
         }).reduce((col, cur) => (col && cur), true)
@@ -345,6 +442,7 @@ module.exports = (function(){
         table.drawOptionals.filter ? 'max-content' : ''} repeat(${filteredData.length}, max-content) ${
           table.drawOptionals.footer ? 'max-content' : ''}`; 
     fillData(table, filteredData);
+    applyConditionalRowStyling(table, filteredData, table.header, table.conditionalRowStyle, table.conditionalStyleOptions);
     return filteredData;
   }
 
@@ -360,6 +458,7 @@ module.exports = (function(){
       Object.defineProperty(table, prop, {
         set(newValue){
           table.options[prop] = newValue;
+          if(table.header) table.redrawData();
         },
         get(){
           return table.options[prop];
@@ -405,11 +504,10 @@ module.exports = (function(){
    *  - formatterOptions - an object with options concerning formatter. Available Options:
    *      - active: Boolean
    *  - filter - an Object with column names as keys, containing strings which correspond to the filter input values in the ui. 
-   *    Those get validated by customFilterFunction / regexFilter.
+   *    Those get validated by filterOperations.fn.
    *  - filterOptions - an object with options concerning filter. Available Options:
    *      - active: Boolean
-   *  - customFilterFunction - a function that can override default filter behaviour (regexFilter). Arguments are filter input values and value to test against as strings.
-   *    The expected return is a filtered data Array.
+   *  - filterOperations - an object with operations, filters and chars for different filter options toggleable. `{Column1: {name: 'modFilter', char: '%', fn: function(filterInput, testValue)}}`
    *  - sortedBy - an Array of Objects describing sorting. Keys are col - column name sorted - and dir - the sort direction (one of ["asc", "desc"]). Sorting is kept after each
    *    sorting operation, so that primary, secondary, tertiary, ... sorting is possible.
    *  - sortOptions - an object with options concerning sorting. Available Options:
@@ -431,6 +529,7 @@ module.exports = (function(){
         'header',
         'displayedData',
         'drawOptionals',
+        'sortArrowElements',
       ]);
 
       this.options = {}
@@ -443,7 +542,8 @@ module.exports = (function(){
         'formatterOptions',
         'filter',
         'filterOptions',
-        'customFilterFunction',
+        'filterOperations',
+        'activeFilterOperations',
         'sortedBy',
         'sortOptions',
         'customCompareNumbers',
@@ -460,7 +560,20 @@ module.exports = (function(){
     useDefaultOptions(){
       this.root_document = document;
 
+      this.sortArrowElements = {};
       this.optionalDebounceFn = undefined;
+      this.activeFilterOperations = {};
+
+      this.filterOperations = [
+        {name: 'contains', char: '&sube;', fn: regexFilter.bind(null, false)}, 
+        {name: 'notContains', char: '&#8840;', fn: regexFilter.bind(null, true)}, 
+        {name: 'equals', char: '=', fn: compareFilter.bind(null, (a, b) => a == b)}, 
+        {name: 'greater', char: '>', fn: compareFilter.bind(null, (a, b) => a < b)}, 
+        {name: 'greaterEquals', char: '&ge;', fn: compareFilter.bind(null, (a, b) => a <= b)}, 
+        {name: 'lesser', char: '<', fn: compareFilter.bind(null, (a, b) => a > b)}, 
+        {name: 'lesserEquals', char: '&le;', fn: compareFilter.bind(null, (a, b) => a >= b)}, 
+        {name: 'unEquals', char: '&ne;', fn: compareFilter.bind(null, (a, b) => a != b)}, 
+      ]
 
       this.conditionalColumnStyle = [
         {
@@ -473,9 +586,28 @@ module.exports = (function(){
         Rabattsatz: [
           {
             condition: function(value, index){
-              return value == 0;
+              return value == 0 && index % 2 != 0;
             },
-            styles: ["background-color: red;"]
+            styles: ["background-color: lightcoral;", "color: black;"],
+            fullrow: true
+          }, {
+            condition: function(value, index){
+              return value == 0 && index % 2 == 0;
+            },
+            styles: ["background-color: darksalmon;", "color: black;"],
+            fullrow: true
+          }, {
+            condition: function(value, index){
+              return value > 0 && index % 2 != 0;
+            },
+            styles: ["background-color: lightgreen;", "color: black;"],
+            fullrow: true
+          }, {
+            condition: function(value, index){
+              return value > 0 && index % 2 == 0;
+            },
+            styles: ["background-color: darkseagreen;", "color: black;"],
+            fullrow: true
           }
         ]
       }
@@ -493,7 +625,6 @@ module.exports = (function(){
       this.filterOptions = {
         "active": true,
       }
-      this.customFilterFunction = regexFilter;
 
       this.sortedBy = [];
       this.sortOptions = {
@@ -580,7 +711,7 @@ module.exports = (function(){
       let dataElements = this.root_document.querySelectorAll('div.wgt-data_cell, div.wgt-footer');
       dataElements.forEach(element => this.removeChild(element), this);
       this.header.forEach(filterKey => {
-        this.root_document.querySelector(`.wgt-filter_cell_${filterKey}`).textContent = this.filter[filterKey] ? this.filter[filterKey] : '';
+        this.root_document.querySelector(`.wgt-filter_cell_${filterKey}>div.filter_input`).textContent = this.filter[filterKey] ? this.filter[filterKey] : '';
       })
       if (this.data){
         this.displayedData = drawData(this);
