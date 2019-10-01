@@ -1,8 +1,10 @@
-const {regexFilter, textFilter, compareNumbers, compareText, chooseSortsCompareFn, defineCustomElement, TableComponent} = require('../src/wc-grid-table.js');
+const {compareNumbers, compareText, chooseSortsCompareFn, defineCustomElement, TableComponent} = require('../src/wc-grid-table.js');
+const {regexFilter, textFilter, compareFilter} = require('../src/filter_utils.js');
+
 
 jest.mock('../src/wc-grid-table.css')
 
-describe('compare numbers tests', () => {
+describe('compareNumbers', () => {
   test('when first arg bigger then second return should be positive', () => {
     expect(compareNumbers(23, 22)).toBeGreaterThan(0);
     expect(compareNumbers(1.8, 0.9)).toBeGreaterThan(0);
@@ -34,7 +36,7 @@ describe('compare numbers tests', () => {
   });
 });
 
-describe('compare strings tests', () => {
+describe('compareText', () => {
   test('when first arg "earlier" then second return should be positive', () => {
     expect(compareText('001', '234')).toBeGreaterThan(0);
     expect(compareText('test', 'zest')).toBeGreaterThan(0);
@@ -65,3 +67,45 @@ describe('compare strings tests', () => {
     expect(compareText([1, 2, 3], '1,2,3')).toEqual(0);
   });
 });
+
+
+describe('regexFilter', () => {
+  test('basic examples', () => {
+    expect(regexFilter(false, '105', '00AA105GH00')).toBe(true);
+    expect(regexFilter(false, 'AA0', '00AA105GH00')).toBe(false);
+    expect(regexFilter(true, '105', '00AA105GH00')).toBe(false);
+    expect(regexFilter(true, 'AA0', '00AA105GH00')).toBe(true);
+    expect(regexFilter(false, 'GH00$', '00AA105GH00')).toBe(true);
+    expect(regexFilter(true, 'GH00$', '00AA105GH00')).toBe(false);
+    expect(regexFilter(false, '^00A', '00AA105GH00')).toBe(true);
+    expect(regexFilter(true, '^00A', '00AA105GH00')).toBe(false);
+    expect(regexFilter(false, '^0A', '00AA105GH00')).toBe(false);
+    expect(regexFilter(true, '^0A', '00AA105GH00')).toBe(true);
+    expect(regexFilter(true, '^00AA105GH00$', '00AA105GH00')).toBe(false);
+    expect(regexFilter(false, '^00AA105GH00$', '00AA105GH00')).toBe(true);
+    expect(regexFilter(true, '^00.*00$', '00AA105GH00')).toBe(false);
+    expect(regexFilter(false, '^00.*00$', '00AA105GH00')).toBe(true);
+  });
+
+  test('special cases', () => {
+    expect(regexFilter(false, '', '')).toBe(true);
+    expect(regexFilter(false, ' ', '')).toBe(false);
+    expect(regexFilter(false, '12', 12.66)).toBe(true);
+    // regex not escaped square bracket -> character class
+    expect(regexFilter(false, '[1,2,3,4]', [1, 2, 3, 4])).toBe(true);
+    // regex litteral square brackets; dont get rendered on Array.toString(); so it's removed in both args.
+    expect(regexFilter(false, '\[1,2,3,4\]', [1, 2, 3, 4])).toBe(true);
+    // regex escaped square brackets; dont get rendered on Array.toString()
+    expect(regexFilter(false, '\\[1,2,3,4\\]', [1, 2, 3, 4])).toBe(false);
+    expect(regexFilter(false, '1,2,3,4', [1, 2, 3, 4])).toBe(true);
+  })
+
+  test('RegExp special characters', () => {
+    expect(regexFilter(false, '00$', '00$')).toBe(false);
+    expect(regexFilter(false, '00\\$', '00$')).toBe(true);
+  });
+});
+
+describe('textFilter', () => {});
+
+describe('compareFilter', () => {});
