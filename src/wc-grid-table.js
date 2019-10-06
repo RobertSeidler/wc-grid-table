@@ -348,6 +348,10 @@ module.exports = (function(){
     }
   }
 
+  function applyPagination(data){
+    return data;
+  }
+
   function drawTable(table){
     table.drawOptionals = {
       header: !table.hasAttribute('noheader'),
@@ -383,7 +387,8 @@ module.exports = (function(){
   function drawData(table){
     table.sortedData = applySorting(table);
     applyConditionalColumnStyling(table, table.sortedData, table.header, table.conditionalColumnStyle, table.conditionalStyleOptions);
-    let formattedData = applyFormatter(table.sortedData, table.header, table.formatter, table.formatterOptions);
+    let pageinatedData = applyPagination(table.sortedData);
+    let formattedData = applyFormatter(pageinatedData, table.header, table.formatter, table.formatterOptions);
     let filteredData = applyFilter(table, formattedData, table.header, table.filter, table.filterOptions);
     table.style.gridTemplateRows = `${
       table.drawOptionals.header ? 'max-content' : ''} ${
