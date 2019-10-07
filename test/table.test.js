@@ -1,5 +1,5 @@
 const {compareNumbers, compareText, chooseSortsCompareFn, defineCustomElement, TableComponent} = require('../src/wc-grid-table.js');
-const {regexFilter, textFilter, compareFilter} = require('../src/filter_utils.js');
+const {regexFilter, textFilter, compareFilter} = require('../src/filter-utils.js');
 
 
 jest.mock('../src/wc-grid-table.css')

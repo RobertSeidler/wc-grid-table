@@ -4,7 +4,7 @@
   "description": "A table component implemented with css-grid and webcomponents.",
   "main": "dist/standalone/bundle.min.js",
   "scripts": {
-    "setup_folder": "if not exist dist mkdir dist && if not exist dist\\example1 mkdir dist\\example1 && if not exist dist\\standalone mkdir dist\\standalone && if not exist dist\\styles mkdir dist\\styles",
+    "setup_folder": "mkdir -p dist && mkdir -p dist/example1 && mkdir -p dist/standalone && mkdir -p dist/styles",
     "copy_public": "cp src/public/* dist && cp src/example1/* dist/example1 && cp src/standalone/* dist/standalone && cp src/styles/* dist/styles",
     "build": "browserify -t browserify-css src/wc-grid-table.js > dist/bundle.js",
     "build_min": "browserify -p tinyify -t browserify-css src/wc-grid-table.js > dist/bundle.min.js",
@@ -27,6 +27,7 @@
   "devDependencies": {
     "browserify": "^16.5.0",
     "browserify-css": "^0.15.0",
+    "http-server": "^0.11.1",
     "jest": "^24.9.0",
     "jest-css-modules": "^2.1.0",
     "tinyify": "^2.5.1"

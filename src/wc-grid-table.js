@@ -8,7 +8,8 @@
 
 require('./wc-grid-table.css');
 
-const {regexFilter, textFilter, compareFilter} = require('./filter_utils.js');
+const {regexFilter, textFilter, compareFilter} = require('./filter-utils.js');
+const {createPageChooser, addKeyHandlerToDocument} = require('./pagination-utils.js');
 
 module.exports = (function(){
   // Closure, so that only functions I want to expose are getting exposed.
@@ -154,9 +155,9 @@ module.exports = (function(){
   }
 
   function createStickyFilterStyle(table, col_height){
-    let tmp_style = table.root_document.querySelector('style.sticky_filter_offset')
+    let tmp_style = table.elements.stickyStyle;
     if(!tmp_style){
-      tmp_style = document.createElement('style');
+      table.elements.stickyStyle = tmp_style = document.createElement('style');
       tmp_style.type = "text/css";
       tmp_style.classList.add('sticky_filter_offset');
     }
@@ -169,6 +170,7 @@ module.exports = (function(){
   }
 
   function createFilter(table, header, filter){
+    table.elements.filterCells = {};
     header.forEach(column => {
       let filter_container = document.createElement('div');
       // let filter_input = document.createElement('input');
@@ -193,11 +195,12 @@ module.exports = (function(){
       // filter_container.append(filter_input);
       filter_container.append(filter_input);
       filter_container.append(filter_negate);
+      table.elements.filterCells[column] = filter_container;
       table.append(filter_container);
     })
   }
 
-  function createFooter(table, data){
+  function createFooter(table, data, pageChooser){
     let footer = document.createElement('div');
     footer.classList.add('wgt-footer')
     footer.style.gridColumn = `1 / ${table.header.length + 1}`
@@ -209,15 +212,18 @@ module.exports = (function(){
 
     if(table.data.length !== data.length){
       let filtered_row_count = document.createElement('div');
-      filtered_row_count.innerHTML = `Filtered: ${data.length}`;
+      filtered_row_count.innerHTML = `Filtered: ${data.length}${table.pagination.active ? ` / ${table.pagination.filteredDataCount}` : ''}`;
       filtered_row_count.classList.add('wgt-footer_cell', 'wgt-cell')
       footer.append(filtered_row_count)
     }
-
-    table.append(footer)
+    if(pageChooser) footer.append(pageChooser);
+    if(table.elements.footer) table.elements.footer.remove();
+    table.elements.footer = footer;
+    table.append(footer);
   }
 
   function fillData(table, data){
+    table.elements.dataCells = {};
     data.forEach((row, rowIndex) => {
       table.header.forEach( (column, columnIndex) => {
         let cell = document.createElement('div');
@@ -225,6 +231,8 @@ module.exports = (function(){
         // cell.classList.add()
         // cell.classList.add()
         cell.innerHTML = row[column] != undefined ? row[column] : '';
+        if(!table.elements.dataCells[column]) table.elements.dataCells[column] = [];
+        table.elements.dataCells[column].push(cell);
         table.append(cell)
       })
     })
@@ -248,9 +256,9 @@ module.exports = (function(){
 
   function applyConditionalColumnStyling(table, data, header, conditionalColumnStyle, options){
     if(options.active){
-      let column_style_element = table.root_document.querySelector('style.column_styles');
+      let column_style_element = table.elements.columnStyle;
       if(!column_style_element){
-        column_style_element = document.createElement('style');
+        table.elements.columnStyle = column_style_element = document.createElement('style');
         column_style_element.type = "text/css";
         column_style_element.classList.add('column_styles');
         table.root_document.querySelector('head').append(column_style_element);
@@ -272,9 +280,9 @@ module.exports = (function(){
 
   function applyConditionalRowStyling(table, data, header, conditionalRowStyle, options){
     if(options.active){
-      let row_style_element = table.root_document.querySelector('style.row_styles');
+      let row_style_element = table.elements.columnStyle;
       if(!row_style_element){
-        row_style_element = document.createElement('style');
+        table.elements.columnStyle = row_style_element = document.createElement('style');
         row_style_element.type = "text/css";
         row_style_element.classList.add('row_styles');
         table.root_document.querySelector('head').append(row_style_element);
@@ -348,15 +356,28 @@ module.exports = (function(){
     }
   }
 
-  function applyPagination(data){
-    return data;
+  function applyPagination(table, data){
+    let result = data;
+    table.pagination.active = table.paginationOptions.active;
+    table.pagination.totalPages = table.pagination.active ? Math.ceil(data.length / table.pagination.pageSize) : 1;
+    if(table.pagination.totalPages == 1){
+      table.pagination.active = false;
+    } else {
+      result = data.filter((value, index) => 
+        !table.pagination.active
+        || ((index >= (table.pagination.currentPage - 1) * table.pagination.pageSize) 
+        && (index < (table.pagination.currentPage) * table.pagination.pageSize))
+      );
+    }
+    return result;
   }
 
   function drawTable(table){
     table.drawOptionals = {
       header: !table.hasAttribute('noheader'),
       filter: !table.hasAttribute('nofilter'),
-      footer: !table.hasAttribute('nofooter')
+      footer: !table.hasAttribute('nofooter'),
+      pagekey: !table.hasAttribute('nopagekey'),
     }
     
     table.innerHTML = "";      
@@ -380,23 +401,30 @@ module.exports = (function(){
 
     if (table.data){
       table.displayedData = drawData(table);
-      if (table.drawOptionals.footer) createFooter(table, table.displayedData);
+      table.elements.pageChooser = createPageChooser(table, table.displayedData);
+
+      if (table.drawOptionals.footer) createFooter(table, table.displayedData, table.elements.pageChooser);
+    }
+
+    if (table.drawOptionals.pagekey){
+      addKeyHandlerToDocument(table);
     }
   }
 
   function drawData(table){
     table.sortedData = applySorting(table);
     applyConditionalColumnStyling(table, table.sortedData, table.header, table.conditionalColumnStyle, table.conditionalStyleOptions);
-    let pageinatedData = applyPagination(table.sortedData);
-    let formattedData = applyFormatter(pageinatedData, table.header, table.formatter, table.formatterOptions);
+    let formattedData = applyFormatter(table.sortedData, table.header, table.formatter, table.formatterOptions);
     let filteredData = applyFilter(table, formattedData, table.header, table.filter, table.filterOptions);
+    table.pagination.filteredDataCount = filteredData.length;
+    let pageinatedData = applyPagination(table, filteredData);
     table.style.gridTemplateRows = `${
       table.drawOptionals.header ? 'max-content' : ''} ${
-        table.drawOptionals.filter ? 'max-content' : ''} repeat(${filteredData.length}, max-content) ${
+        table.drawOptionals.filter ? 'max-content' : ''} repeat(${pageinatedData.length}, max-content) ${
           table.drawOptionals.footer ? 'max-content' : ''}`; 
-    fillData(table, filteredData);
-    applyConditionalRowStyling(table, filteredData, table.header, table.conditionalRowStyle, table.conditionalStyleOptions);
-    return filteredData;
+    fillData(table, pageinatedData);
+    applyConditionalRowStyling(table, pageinatedData, table.header, table.conditionalRowStyle, table.conditionalStyleOptions);
+    return pageinatedData;
   }
 
   function defineHiddenProperties(table, props){
@@ -483,6 +511,8 @@ module.exports = (function(){
         'displayedData',
         'drawOptionals',
         'sortArrowElements',
+        'pagination',
+        'elements',
       ]);
 
       this.options = {}
@@ -513,9 +543,21 @@ module.exports = (function(){
     useDefaultOptions(){
       this.root_document = document;
 
+      this.elements = {};
+
       this.sortArrowElements = {};
       this.optionalDebounceFn = undefined;
       this.activeFilterOperations = {};
+
+      this.paginationOptions = {
+        active: true,
+      }
+
+      this.pagination = {
+        active: true,
+        currentPage: 1,
+        pageSize: 40,
+      }
 
       this.filterOperations = [
         {name: 'containsEx', char: '&sube;', fn: regexFilter.bind(null, false)}, 
@@ -661,14 +703,18 @@ module.exports = (function(){
      * Force a refresh, in case the data has changed. Alternatively you can call TableComponent.setData(newData).
      */
     redrawData(){
-      let dataElements = this.root_document.querySelectorAll('div.wgt-data_cell, div.wgt-footer');
-      dataElements.forEach(element => this.removeChild(element), this);
-      this.header.forEach(filterKey => {
-        this.root_document.querySelector(`.wgt-filter_cell_${filterKey}>div.filter_input`).textContent = this.filter[filterKey] ? this.filter[filterKey] : '';
-      })
+      let wasSelected = this.elements.pageChooser.classList.contains('selected');
+      this.header.forEach(column => {
+        if (this.elements.dataCells[column]) [].forEach.call(this.elements.dataCells[column], element => element.remove());
+        this.elements.filterCells[column].firstChild.textContent = this.filter[column] ? this.filter[column] : '';
+      }) 
+      // let dataElements = this.root_document.querySelectorAll('div.wgt-data_cell, div.wgt-footer');
+      // dataElements.forEach(element => this.removeChild(element), this);
       if (this.data){
         this.displayedData = drawData(this);
-        if (this.drawOptionals.footer) createFooter(this, this.displayedData);
+        this.elements.pageChooser = createPageChooser(this, this.displayedData);
+        if (this.drawOptionals.footer) createFooter(this, this.displayedData, this.elements.pageChooser);
+        if (wasSelected) this.elements.pageChooser.classList.add('selected');
       }
     }
   }
