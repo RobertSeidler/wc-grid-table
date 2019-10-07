@@ -166,7 +166,7 @@ module.exports = (function(){
         top: ${col_height + 1}px;
       }
     `;    
-    table.root_document.querySelector('head').append(tmp_style);
+    table.root_document.head.append(tmp_style);
   }
 
   function createFilter(table, header, filter){
@@ -261,7 +261,7 @@ module.exports = (function(){
         table.elements.columnStyle = column_style_element = document.createElement('style');
         column_style_element.type = "text/css";
         column_style_element.classList.add('column_styles');
-        table.root_document.querySelector('head').append(column_style_element);
+        table.root_document.head.append(column_style_element);
       }
       column_style_element.innerHTML = '';
       header.forEach(column => {
@@ -285,7 +285,7 @@ module.exports = (function(){
         table.elements.columnStyle = row_style_element = document.createElement('style');
         row_style_element.type = "text/css";
         row_style_element.classList.add('row_styles');
-        table.root_document.querySelector('head').append(row_style_element);
+        table.root_document.head.append(row_style_element);
       }
       row_style_element.innerHTML = '';
       Object.keys(conditionalRowStyle).forEach(column => {
@@ -652,6 +652,9 @@ module.exports = (function(){
      * Called when table is added to DOM. Doesn't need to be called manually.
      */
     connectedCallback(){
+      if(!this.root_document.body) this.root_document.body = document.createElement('body');
+      if(!this.root_document.head) this.root_document.head = document.createElement('head');
+      this.tableId = this.root_document.querySelectorAll('.wgt-grid-container').length
       this.classList.add('wgt-grid-container')
       if(!this.sortedData && this.data) this.sortedData = this.data;
       drawTable(this)
@@ -703,14 +706,12 @@ module.exports = (function(){
      * Force a refresh, in case the data has changed. Alternatively you can call TableComponent.setData(newData).
      */
     redrawData(){
-      let wasSelected = this.elements.pageChooser.classList.contains('selected');
       this.header.forEach(column => {
         if (this.elements.dataCells[column]) [].forEach.call(this.elements.dataCells[column], element => element.remove());
         this.elements.filterCells[column].firstChild.textContent = this.filter[column] ? this.filter[column] : '';
-      }) 
-      // let dataElements = this.root_document.querySelectorAll('div.wgt-data_cell, div.wgt-footer');
-      // dataElements.forEach(element => this.removeChild(element), this);
+      }); 
       if (this.data){
+        let wasSelected = this.elements.pageChooser ? this.elements.pageChooser.classList.contains('selected') : false;
         this.displayedData = drawData(this);
         this.elements.pageChooser = createPageChooser(this, this.displayedData);
         if (this.drawOptionals.footer) createFooter(this, this.displayedData, this.elements.pageChooser);
