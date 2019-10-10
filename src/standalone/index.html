@@ -9,6 +9,7 @@
   <script>
     WcGridTable.defineCustomElement();
     let table = document.createElement('wc-grid-table');
+    table.toggleAttribute('rewriteurl');
     
     fetch('../data.json')
       .then(response => response.json())

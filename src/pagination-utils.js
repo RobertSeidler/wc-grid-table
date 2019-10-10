@@ -13,13 +13,22 @@ function getFrameStartEnd(currentPage, totalPages){
   return {start: start, end: end};
 }
 
+function changePageTo(table, targetPage){
+  table.pagination.currentPage = targetPage;
+  console.log('page changed');
+  table.serializeLinkOptions();
+  table.redrawData();
+}
+
 function onPageChangeKey(table, event){
   if (event.keyCode == 37){
-    table.pagination.currentPage = table.pagination.currentPage > 1 ? table.pagination.currentPage - 1 : 1;
-    table.redrawData();
+    changePageTo(table, table.pagination.currentPage > 1 ? table.pagination.currentPage - 1 : 1)
+    //table.pagination.currentPage = table.pagination.currentPage > 1 ? table.pagination.currentPage - 1 : 1;
+    //table.redrawData();
   } else if (event.keyCode == 39){
-    table.pagination.currentPage = table.pagination.currentPage < table.pagination.totalPages ? table.pagination.currentPage + 1 : table.pagination.totalPages;
-    table.redrawData();
+    changePageTo(table, table.pagination.currentPage < table.pagination.totalPages ? table.pagination.currentPage + 1 : table.pagination.totalPages);
+    //table.pagination.currentPage = table.pagination.currentPage < table.pagination.totalPages ? table.pagination.currentPage + 1 : table.pagination.totalPages;
+    //table.redrawData();
   }
 }
 
@@ -79,8 +88,9 @@ function createPageChooserChild(content, table, targetPage, isCurrent, isDisable
       element.classList.add('page-change-disabled');
     } else {
       element.addEventListener('click', (event) => {
-        table.pagination.currentPage = targetPage;
-        table.redrawData();
+        changePageTo(table, targetPage)
+        //table.pagination.currentPage = targetPage;
+        //table.redrawData();
       });
     }
   }
@@ -92,4 +102,5 @@ module.exports = {
   createPageChooser,
   createPageChooserChild,
   addKeyHandlerToDocument,
+  changePageTo,
 }

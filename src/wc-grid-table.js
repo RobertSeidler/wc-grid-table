@@ -71,64 +71,66 @@ module.exports = (function(){
     customElements.define('wc-grid-table', TableComponent);
   }
 
-  function onSortClick(table, column, event){
-    if(table.sortedBy.length > 0){
-      if(table.sortedBy[0].col === column){
-        table.sortedBy[0].dir = table.sortedBy[0].dir === "asc" ? "desc" : "asc";
-        table.sortArrowElements[column].innerHTML = table.sortedBy[0].dir === "asc" ? "&uarr;" : "&darr;";
-        // table.sortedData = [].concat(table.sortedData.filter(entry => entry[column] != undefined).reverse(), table.sortedData.filter(entry => entry[column] == undefined));
-        // table.redrawData();
-        // return;
+  function onSortClick(table, column, event, doRedraw){
+    if(table.header.includes(column)){
+      if(table.sortedBy.length > 0){
+        if(table.sortedBy[0].col === column){
+          table.sortedBy[0].dir = table.sortedBy[0].dir === "asc" ? "desc" : "asc";
+          table.elements.sortArrows[column].innerHTML = table.sortedBy[0].dir === "asc" ? "&uarr;" : "&darr;";
+          // table.sortedData = [].concat(table.sortedData.filter(entry => entry[column] != undefined).reverse(), table.sortedData.filter(entry => entry[column] == undefined));
+          // table.redrawData();
+          // return;
+        } else {
+          table.header.filter(header_key => header_key !== column).forEach(header_key => {
+            if(table.elements.sortArrows[header_key].innerHTML !== '&#8693;') {
+              table.elements.sortArrows[header_key].arrowAlphaColor = table.elements.sortArrows[header_key].arrowAlphaColor * 0.5;
+              table.elements.sortArrows[header_key].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[header_key].arrowAlphaColor})`;
+            }
+          });
+          table.sortedBy = [].concat([new Object({col: column, dir: "asc"})], table.sortedBy);
+        }
+        table.elements.sortArrows[column].innerHTML = table.sortedBy[0].dir === "asc" ? "&uarr;" : "&darr;";
+        table.elements.sortArrows[column].arrowAlphaColor = 1;
+        table.elements.sortArrows[column].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[column].arrowAlphaColor})`;
       } else {
-        table.header.filter(header_key => header_key !== column).forEach(header_key => {
-          if(table.sortArrowElements[header_key].innerHTML !== '&#8693;') {
-            table.sortArrowElements[header_key].arrowAlphaColor = table.sortArrowElements[header_key].arrowAlphaColor * 0.5;
-            table.sortArrowElements[header_key].style.color = `rgb(0, 0, 0, ${table.sortArrowElements[header_key].arrowAlphaColor})`;
-          }
-        })
-        table.sortedBy.unshift({
-          col: column,
-          dir: "asc"
-        })
+        table.sortedBy = [].concat(table.sortedBy, [new Object({col: column, dir: "asc"})]);
+        table.elements.sortArrows[column].innerHTML = "&uarr;";
+        table.elements.sortArrows[column].arrowAlphaColor = 1;
+        table.elements.sortArrows[column].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[column].arrowAlphaColor})`;
       }
-      table.sortArrowElements[column].innerHTML = table.sortedBy[0].dir === "asc" ? "&uarr;" : "&darr;";
-      table.sortArrowElements[column].arrowAlphaColor = 1;
-      table.sortArrowElements[column].style.color = `rgb(0, 0, 0, ${table.sortArrowElements[column].arrowAlphaColor})`;
-    } else {
-      table.sortedBy.push({
-        col: column,
-        dir: "asc"
-      });
-      table.sortArrowElements[column].innerHTML = "&uarr;";
-      table.sortArrowElements[column].arrowAlphaColor = 1;
-      table.sortArrowElements[column].style.color = `rgb(0, 0, 0, ${table.sortArrowElements[column].arrowAlphaColor})`;
+      //console.log('sort changed')
+      table.serializeLinkOptions()
+      if(doRedraw) table.redrawData()
     }
-    table.redrawData()
   }
 
   function filterChanged(table, column, event){
     table.filter[column] = event.srcElement.textContent;
     table.redrawData();
+    //console.log('filter changed')
+    table.serializeLinkOptions()
   }
 
   /**
    * table.filterNegate[column] === undefined shall be equal to 'contains'.
    * @param {*} table 
    * @param {*} column 
-   * @param {*} filter_negate_element 
    * @param {*} event 
    */
-  function toggleFilterNegator(table, column, filter_negate_element, event){
+  function toggleFilterNegator(table, column, event){
     let newOperation = table.activeFilterOperations[column];
-    if(newOperation === undefined) newOperation = table.filterOperations[0];
-    newOperation = table.filterOperations[(table.filterOperations.findIndex(element => element.name === newOperation.name) + 1) % table.filterOperations.length]
-    filter_negate_element.innerHTML = newOperation.char;
+    if(newOperation === undefined || newOperation == '') newOperation = table.filterOperations[0].name;
+    newOperation = table.filterOperations[(table.filterOperations.findIndex(element => (element.name == newOperation)) + 1) % table.filterOperations.length].name;
+    // console.log(newOperation)
+    if(table.elements.filterOperations[column]) table.elements.filterOperations[column].innerHTML = table.filterOperations.find(op => op.name == newOperation).char;
     table.activeFilterOperations[column] = newOperation;
     table.redrawData();
+    //console.log('operation changed')
+    table.serializeLinkOptions();
   }
 
   function setUpSorting(element, column, table){
-    element.addEventListener('click', (event) => onSortClick(table, column, event))
+    element.addEventListener('click', (event) => onSortClick(table, column, event, true))
   }
 
   function createHeader(table){
@@ -146,7 +148,7 @@ module.exports = (function(){
       let sort_arrow = document.createElement('div');
       sort_arrow.classList.add('arrow');
       sort_arrow.innerHTML = '&#8693;';
-      table.sortArrowElements[column] = sort_arrow;
+      table.elements.sortArrows[column] = sort_arrow;
       setUpSorting(sort_arrow, column, table)
       col_header.append(sort_arrow)
 
@@ -171,6 +173,7 @@ module.exports = (function(){
 
   function createFilter(table, header, filter){
     table.elements.filterCells = {};
+    table.elements.filterOperations = {};
     header.forEach(column => {
       let filter_container = document.createElement('div');
       // let filter_input = document.createElement('input');
@@ -185,11 +188,12 @@ module.exports = (function(){
       filter_input.addEventListener('input', event => filterChanged.bind(null, table, column)(event));
       filter_input.classList.add('filter_input');
       filter_input.contentEditable = 'true';
-
       let filter_negate = document.createElement('div');
+      table.elements.filterOperations[column] = filter_negate;
       filter_negate.innerHTML = '&sube;';
       filter_negate.classList.add('filter_negator');
-      filter_negate.addEventListener('click', event => toggleFilterNegator.bind(null, table, column, filter_negate)(event))
+      
+      filter_negate.addEventListener('click', event => toggleFilterNegator.bind(null, table, column)(event))
       // filter_negate.style.position = 'absolute';
       // filter_negate.style.
       // filter_container.append(filter_input);
@@ -216,10 +220,86 @@ module.exports = (function(){
       filtered_row_count.classList.add('wgt-footer_cell', 'wgt-cell')
       footer.append(filtered_row_count)
     }
+    if(footer) footer.append(createColumnChooserButton(table));
     if(pageChooser) footer.append(pageChooser);
     if(table.elements.footer) table.elements.footer.remove();
     table.elements.footer = footer;
     table.append(footer);
+  }
+
+  let boundColumnChooserButtonHandler = undefined;
+  let boundColumnChooserOutsideHandler = undefined;
+  let boundColumnChooserChangeColumnHandler = undefined;
+
+  function bindColumnChooserHandler(table){
+    boundColumnChooserButtonHandler = onColumnChooserButtonHandler.bind(null, table);
+    boundColumnChooserOutsideHandler = onColumnChooserOutsideHandler.bind(null, table);
+    boundColumnChooserChangeColumnHandler = onColumnChooserChangeColumnHandler.bind(null, table);
+  }
+
+  function createColumnChooserButton(table){
+    bindColumnChooserHandler(table); 
+    let but = document.createElement('div');
+    but.classList.add('wgt-footer_cell', 'wgt-cell', 'column-chooser-button');
+    but.innerHTML = 'columns';
+    table.append(createColumnChooserMenuContainer(table, table.headerAll));
+    but.addEventListener('click', boundColumnChooserButtonHandler);
+    return but;    
+  }
+
+  function createColumnChooserMenuItems(table, column){
+    let colItem = document.createElement('li');
+    colItem.classList.add('column-chooser-item');
+    let label = document.createElement('label');
+    label.setAttribute('name', column + '_checkbox');
+    let checkBox = document.createElement('input');
+    checkBox.setAttribute('type', 'checkbox');
+    checkBox.setAttribute('name', column + '_checkbox');
+    checkBox.setAttribute('value', true);
+    checkBox.addEventListener('change', boundColumnChooserChangeColumnHandler)
+    table.elements.columnChooserCheckbox[column] = checkBox;
+    label.append(checkBox);
+    label.innerHTML += column; 
+    colItem.append(label);
+    return colItem;
+  }
+
+  function createColumnChooserMenuContainer(table, allHeader){
+    if(!table.elements.columnChooserCheckbox) table.elements.columnChooserCheckbox = {};
+    let menu = document.createElement('ul');
+    menu.classList.add('column-chooser-menu');
+    let menuContainer = document.createElement('div');
+    menuContainer.classList.add('column-chooser-menu-container', 'hidden')
+    allHeader.forEach(column => {
+      menu.append(createColumnChooserMenuItems(table, column));
+    })
+    menuContainer.append(menu)
+    table.elements.columnChooserMenuContainer = menuContainer;
+    return menuContainer;
+  }
+
+  function onColumnChooserButtonHandler(table, event){
+    let classList = table.elements.columnChooserMenuContainer.classList;
+    if(classList.contains('hidden')){
+      classList.remove('hidden');
+      table.root_document.addEventListener('click', boundColumnChooserOutsideHandler)
+    } else {
+      classList.add('hidden')
+      table.root_document.removeEventListener('click', boundColumnChooserOutsideHandler)
+    }
+    //event.stopPropagation();
+  }
+
+  function onColumnChooserOutsideHandler(table, event){
+    if(!event.srcElement.classList.contains('column-chooser-button')){
+      let classList = table.elements.columnChooserMenuContainer.classList;
+      classList.add('hidden');
+      table.root_document.removeEventListener('click', boundColumnChooserOutsideHandler)
+    }
+  }
+
+  function onColumnChooserChangeColumnHandler(table, event){
+    console.log(event)
   }
 
   function fillData(table, data){
@@ -250,6 +330,7 @@ module.exports = (function(){
       cur.forEach(value => {
         if(!col.includes(value)) result.push(value)
       })
+      // console.log(result)
       return result;
     }, [])
   }
@@ -303,6 +384,23 @@ module.exports = (function(){
     }
   }
 
+  function resetSorting(table){
+    table.sortedData = table.data ? table.data.map(value => value) : [];
+    table.sortedBy = [];
+    if(table.header) table.header.forEach(column => {
+      table.elements.sortArrows[column].innerHTML = '&#8693;';
+      table.elements.sortArrows[column].arrowAlphaColor = 1.0;
+      table.elements.sortArrows[column].style.color = `lightgray`;
+    });
+  }
+
+  function resetFilterOperations(table){
+    table.header.forEach(column => {
+      let operation = table.filterOperations.find(op => (op.name == table.activeFilterOperations[column]));
+      if(operation) table.elements.filterOperations[column].innerHTML = operation.char;
+    });    
+  }
+
   function applySorting(table, column){
     // if(column) {
     //   return table.sortedData.sort((a, b) => {
@@ -311,14 +409,14 @@ module.exports = (function(){
     // } else 
     if(table.sortedBy && table.sortedBy.length > 0) {
       column = table.sortedBy[0].col;
-      let sorted = table.data.sort((a, b) => {
+      let sorted = table.sortedData.sort((a, b) => {
         return table.customChooseSortsCompareFn(table, table.data, column)(a[column], b[column])
       })
       if(table.sortedBy[0].dir === 'desc')
         sorted = [].concat(sorted.filter(entry => entry[column] != undefined).reverse(), sorted.filter(entry => entry[column] == undefined));
       return sorted;
     } else {
-      return table.data;
+      return table.sortedData;
     }
   }
 
@@ -327,10 +425,10 @@ module.exports = (function(){
       return data.filter(row => 
         header.map(column => {
           if(filter[column]){
-            if (!table.activeFilterOperations[column]) table.activeFilterOperations[column] = table.filterOperations[0];
-            return table.activeFilterOperations[column].fn(filter[column], row[column]);
-          }
-          else return true;
+            if (table.activeFilterOperations[column] == '' || table.activeFilterOperations[column] == undefined) table.activeFilterOperations[column] = table.filterOperations[0].name;
+            //console.log(table.activeFilterOperations[column])
+            return table.filterOperations.find(op => (op.name == table.activeFilterOperations[column])).fn(filter[column], row[column]);
+          } else return true;
         }).reduce((col, cur) => (col && cur), true)
       )
     } else {
@@ -348,6 +446,7 @@ module.exports = (function(){
           } else {
             formattedRow[column] = row[column]
           }
+          // console.log(formatter[column].reduce((col, cur) => cur(col, rowNr, dataReadOnly), row[column]), row[column])
         })
         return formattedRow;
       }) 
@@ -373,21 +472,37 @@ module.exports = (function(){
   }
 
   function drawTable(table){
+    table.elements = {};
+    table.elements.sortArrows = {};
+
     table.drawOptionals = {
       header: !table.hasAttribute('noheader'),
       filter: !table.hasAttribute('nofilter'),
       footer: !table.hasAttribute('nofooter'),
       pagekey: !table.hasAttribute('nopagekey'),
+      rewriteurl: table.hasAttribute('rewriteurl'),
     }
     
-    table.innerHTML = "";      
-    if(!table.sortedData) table.sortedData = table.data;
+    table.innerHTML = "";
+    if(!table.data) table.data = [];      
+    if(!table.sortedData) table.sortedData = table.data.map(value => value);
 
-    if(!table.header && table.data){
-      table.header = generateHeader(table.data);
+    if(!table.header && table.data.length > 0){
+      table.headerAll = generateHeader(table.data);
+    } else {
+      table.headerAll = table.header;
     }
 
-    if(table.header){
+    if(table.headerAll){
+      table.header = 
+        table.headerAll.filter(column => 
+          !table.hiddenColumns.includes(column) && 
+          !table.hiddenColumnsCondition
+            .map(condition => ({col: column, hidden: condition(column, table.data)}))
+            .filter(columnCond => columnCond.hidden)
+            .map(columnCond => columnCond.col)
+            .includes(column)
+        )
       table.style.gridTemplateColumns = `repeat(${table.header.length}, max-content)`;
     }
 
@@ -399,7 +514,7 @@ module.exports = (function(){
       createFilter(table, table.header, table.filter);
     }
 
-    if (table.data){
+    if (table.data.length > 0){
       table.displayedData = drawData(table);
       table.elements.pageChooser = createPageChooser(table, table.displayedData);
 
@@ -424,13 +539,15 @@ module.exports = (function(){
           table.drawOptionals.footer ? 'max-content' : ''}`; 
     fillData(table, pageinatedData);
     applyConditionalRowStyling(table, pageinatedData, table.header, table.conditionalRowStyle, table.conditionalStyleOptions);
+    // if(table.data.length > 0) console.log(table.sortedData[0], formattedData[0], filteredData[0], pageinatedData[0])
     return pageinatedData;
   }
 
   function defineHiddenProperties(table, props){
     props.forEach(prop => Object.defineProperty(table, prop, {
       enumerable: false,
-      writable: true    
+      writable: true,
+      // configurable: true,
     }))
   }
 
@@ -439,6 +556,7 @@ module.exports = (function(){
       Object.defineProperty(table, prop, {
         set(newValue){
           table.options[prop] = newValue;
+          // if(table.linkOptions.includes(prop)) table.serializeLinkOptions();
           if(table.header) table.redrawData();
         },
         get(){
@@ -459,6 +577,47 @@ module.exports = (function(){
 
   function serializeFunction(fun){
     return fun.toString();
+  }
+
+  function replaceUrlSearchParameter(newParamKey, newParamValue){
+    let result = '?';
+    let replaced = false;
+    let oldParams = location.search.slice(1).split('&')
+    if(oldParams.length > 1){
+      oldParams.forEach(oldParam => {
+        let oldParamKey = oldParam.split('=')[0];
+        if(oldParamKey == newParamKey) {
+          replaced = true;
+          result += `${oldParamKey}=${newParamValue}&`;
+        }
+        else result += `${oldParamKey}=${oldParam.split('=').slice(1).join('=')}&`;
+      })
+    } else if(oldParams.length == 1){
+      if (oldParams[0] == ""){
+        replaced = true;
+        result += `${newParamKey}=${newParamValue}&`;
+      } else {
+        if (oldParams[0].split('=')[0] == newParamKey){
+          replaced = true;
+          result += `${newParamKey}=${newParamValue}&`;
+        } else {
+          result += `${oldParams[0].split('=')[0]}=${oldParams[0].split('=').slice(1).join('=')}&`;
+        }
+      }
+    }
+    // console.log(oldParams, newParamKey, newParamValue)
+    if (!replaced) result += `${newParamKey}=${newParamValue}&`;
+    return result.slice(0, -1);
+  }
+
+  function reapplySorting(table, partialOptions){
+    resetSorting(table);
+    partialOptions['sortedBy'].slice(-4).reverse().forEach(sortStep => {
+      if(sortStep.dir == 'desc'){
+        onSortClick(table, sortStep.col)
+      }
+      onSortClick(table, sortStep.col)
+    })
   }
 
   /**
@@ -501,6 +660,14 @@ module.exports = (function(){
     constructor(){
       super();
 
+      this.linkOptions = [
+        'pagination',
+        'filter',
+        'sortedBy',
+        'activeFilterOperations',
+        'hiddenColumns',
+      ]
+
       defineHiddenProperties(this, [
         'options',
         'root_document',
@@ -510,9 +677,8 @@ module.exports = (function(){
         'header',
         'displayedData',
         'drawOptionals',
-        'sortArrowElements',
-        'pagination',
         'elements',
+        'tableId',
       ]);
 
       this.options = {}
@@ -529,9 +695,12 @@ module.exports = (function(){
         'activeFilterOperations',
         'sortedBy',
         'sortOptions',
+        'pagination',
         'customCompareNumbers',
         'customCompareText',
         'customChooseSortsCompareFn',
+        'hiddenColumns',
+        'hiddenColumnsCondition',
       ])
 
       this.useDefaultOptions();
@@ -545,7 +714,14 @@ module.exports = (function(){
 
       this.elements = {};
 
-      this.sortArrowElements = {};
+      this.tableId = 0;
+
+      this.data = [];
+      this.hiddenColumns = ['Einzelpreis'];
+      this.hiddenColumnsCondition = [
+        (column, data) => (column.startsWith('#')),
+      ];
+      this.elements.sortArrows = {};
       this.optionalDebounceFn = undefined;
       this.activeFilterOperations = {};
 
@@ -632,8 +808,71 @@ module.exports = (function(){
       this.drawOptionals = {}
     }
 
+    loadPartialOptions(partialOptions){
+      if (this.data.length > 0){
+        Object.keys(partialOptions).forEach(option => {
+          if(option == 'sortedBy'){
+            reapplySorting(this, partialOptions);
+          } else if (option == 'hiddenColumns') {
+            this[option] = partialOptions[option];
+            this.redrawTable()
+          } else {
+            this[option] = partialOptions[option];
+          }
+        });
+        resetFilterOperations(table)
+        this.redrawData()
+      }
+    }
+
+    serializeLinkOptions(){
+      let linkOptions = new Object();
+      this.linkOptions.forEach(option => {
+        linkOptions[option] = this[option];
+      })
+      let newSerializedValue = btoa(JSON.stringify(linkOptions, (key, value) => value instanceof Function ? serializeFunction(value) : value));
+      let newUrlSearchParam = replaceUrlSearchParameter(`table${this.tableId}`, newSerializedValue);
+      history.replaceState(history.state, '', newUrlSearchParam)
+      //console.log(atob(newSerializedValue))
+      // console.log(newUrlSearchParam)
+    }
+
+    loadLinkOptions(){
+      let serializedOptions = '{}';
+      location.search.slice(1).split('&').forEach(searchOption => {
+        let split = searchOption.split('=')
+        if(split[0] == `table${this.tableId}`){
+          serializedOptions = atob(split.slice(1).join('='));
+        }
+      })
+      let partialOptions = JSON.parse(serializedOptions, (key, value) => {
+        if (!(value instanceof Array)  && value.toString().match(funRegex)) {
+          return deserializeFunction(value)
+        } else {
+          return value
+        }
+      });
+      this.loadPartialOptions(partialOptions);
+      // console.log(partialOptions)
+      // this.redrawData():
+    }
+
     serializeOptions(){
-      return JSON.stringify(this.options, (key, value) => value instanceof Function ? serializeFunction(value) : value)
+      return btoa(JSON.stringify(this.options, (key, value) => value instanceof Function ? serializeFunction(value) : value))
+    }
+
+    deserializeOptions(serializedOptions){
+      if(serializedOptions){
+        return atob(JSON.parse(serializedOptions, (key, value) => {
+          if (!(value instanceof Array)  && value.toString().match(funRegex)) {
+            return deserializeFunction(value);
+          } else {
+            return value;
+          }
+        }));
+      } else {
+        return {};
+      }
     }
 
     loadSerializedOptions(serializedOptions){
@@ -654,10 +893,16 @@ module.exports = (function(){
     connectedCallback(){
       if(!this.root_document.body) this.root_document.body = document.createElement('body');
       if(!this.root_document.head) this.root_document.head = document.createElement('head');
+      let attributeOptions = this.deserializeOptions(this.getAttribute('options'));
+      Object.keys(attributeOptions).forEach(option => {
+        this.options[option] = attributeOptions[option];
+      })
+
       this.tableId = this.root_document.querySelectorAll('.wgt-grid-container').length
       this.classList.add('wgt-grid-container')
-      if(!this.sortedData && this.data) this.sortedData = this.data;
-      drawTable(this)
+      if(!this.sortedData && this.data) this.sortedData = this.data.map(value => value);
+      this.loadLinkOptions();
+      drawTable(this);
     }
 
     /**
@@ -684,8 +929,9 @@ module.exports = (function(){
      */
     setData(data){
       this.data = data;
-      this.sortedData = data;
+      this.sortedData = data.map(value => value);
       drawTable(this);
+      this.loadLinkOptions();
     }
 
     /**
@@ -710,13 +956,26 @@ module.exports = (function(){
         if (this.elements.dataCells[column]) [].forEach.call(this.elements.dataCells[column], element => element.remove());
         this.elements.filterCells[column].firstChild.textContent = this.filter[column] ? this.filter[column] : '';
       }); 
-      if (this.data){
+      if (this.data.length > 0){
         let wasSelected = this.elements.pageChooser ? this.elements.pageChooser.classList.contains('selected') : false;
         this.displayedData = drawData(this);
         this.elements.pageChooser = createPageChooser(this, this.displayedData);
         if (this.drawOptionals.footer) createFooter(this, this.displayedData, this.elements.pageChooser);
         if (wasSelected) this.elements.pageChooser.classList.add('selected');
       }
+    }
+
+    redrawTable(){
+      //this.sortedData = this.data.map(value => value);
+      let partialOptions = {};
+      Object.keys(this.options).forEach(option => {
+        if(this.linkOptions.includes(option)){
+          partialOptions[option] = this[option];
+        }
+      });
+      console.log(partialOptions);
+      drawTable(this);
+      reapplySorting(this, partialOptions);
     }
   }
 
