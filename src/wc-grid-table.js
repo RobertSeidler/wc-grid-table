@@ -205,21 +205,31 @@ module.exports = (function(){
   }
 
   function createFooter(table, data, pageChooser){
+    bindColumnChooserHandler(table); 
     let footer = document.createElement('div');
     footer.classList.add('wgt-footer')
     footer.style.gridColumn = `1 / ${table.header.length + 1}`
 
+    if(!table.elements.columnChooserMenuContainer){
+      console.log('creating menu')
+      table.elements.columnChooserMenuContainer = createColumnChooserMenuContainer(table, table.headerAll);
+      table.parentElement.insertBefore(table.elements.columnChooserMenuContainer, table.nextSibling);
+    }
+    
     let total_rows = document.createElement('div');
     total_rows.innerHTML = `Total: ${table.data.length}`;
     total_rows.classList.add('wgt-footer_cell', 'wgt-cell')
     footer.append(total_rows)
+    table.elements.total_rows = total_rows;
 
     if(table.data.length !== data.length){
       let filtered_row_count = document.createElement('div');
       filtered_row_count.innerHTML = `Filtered: ${data.length}${table.pagination.active ? ` / ${table.pagination.filteredDataCount}` : ''}`;
       filtered_row_count.classList.add('wgt-footer_cell', 'wgt-cell')
       footer.append(filtered_row_count)
+      table.elements.filtered_row_count = filtered_row_count;
     }
+    
     if(footer) footer.append(createColumnChooserButton(table));
     if(pageChooser) footer.append(pageChooser);
     if(table.elements.footer) table.elements.footer.remove();
@@ -234,32 +244,36 @@ module.exports = (function(){
   function bindColumnChooserHandler(table){
     boundColumnChooserButtonHandler = onColumnChooserButtonHandler.bind(null, table);
     boundColumnChooserOutsideHandler = onColumnChooserOutsideHandler.bind(null, table);
-    boundColumnChooserChangeColumnHandler = onColumnChooserChangeColumnHandler.bind(null, table);
   }
 
   function createColumnChooserButton(table){
-    bindColumnChooserHandler(table); 
     let but = document.createElement('div');
     but.classList.add('wgt-footer_cell', 'wgt-cell', 'column-chooser-button');
     but.innerHTML = 'columns';
-    table.append(createColumnChooserMenuContainer(table, table.headerAll));
     but.addEventListener('click', boundColumnChooserButtonHandler);
     return but;    
   }
 
   function createColumnChooserMenuItems(table, column){
     let colItem = document.createElement('li');
-    colItem.classList.add('column-chooser-item');
+    colItem.classList.add('column-chooser-item', 'column-chooser');
     let label = document.createElement('label');
+    label.innerHTML = column;
     label.setAttribute('name', column + '_checkbox');
+    label.classList.add('column-chooser');
     let checkBox = document.createElement('input');
     checkBox.setAttribute('type', 'checkbox');
     checkBox.setAttribute('name', column + '_checkbox');
-    checkBox.setAttribute('value', true);
-    checkBox.addEventListener('change', boundColumnChooserChangeColumnHandler)
+    if(!table.hiddenColumns.includes(column)){
+      checkBox.toggleAttribute('checked');
+    }
+    checkBox.classList.add('column-chooser');
+    boundColumnChooserChangeColumnHandler = onColumnChooserChangeColumnHandler.bind(null, table, column);
+    checkBox.addEventListener('change', boundColumnChooserChangeColumnHandler);
+    console.log(boundColumnChooserChangeColumnHandler)
     table.elements.columnChooserCheckbox[column] = checkBox;
-    label.append(checkBox);
-    label.innerHTML += column; 
+    label.prepend(checkBox);
+    // label.innerHTML += column; 
     colItem.append(label);
     return colItem;
   }
@@ -267,18 +281,29 @@ module.exports = (function(){
   function createColumnChooserMenuContainer(table, allHeader){
     if(!table.elements.columnChooserCheckbox) table.elements.columnChooserCheckbox = {};
     let menu = document.createElement('ul');
-    menu.classList.add('column-chooser-menu');
+    menu.classList.add('column-chooser-menu', 'column-chooser');
     let menuContainer = document.createElement('div');
     menuContainer.classList.add('column-chooser-menu-container', 'hidden')
     allHeader.forEach(column => {
       menu.append(createColumnChooserMenuItems(table, column));
     })
     menuContainer.append(menu)
-    table.elements.columnChooserMenuContainer = menuContainer;
+    // table.elements.columnChooserMenuContainer = menuContainer;
     return menuContainer;
   }
 
   function onColumnChooserButtonHandler(table, event){
+    let offset = table.offsetLeft;
+
+    if(table.elements.total_rows){
+      offset += table.elements.total_rows.offsetWidth;
+    }
+    if(table.elements.filtered_row_count){
+      offset += table.elements.filtered_row_count.offsetWidth;
+    }
+
+    table.elements.columnChooserMenuContainer.style.left = `${offset}px`;
+
     let classList = table.elements.columnChooserMenuContainer.classList;
     if(classList.contains('hidden')){
       classList.remove('hidden');
@@ -287,19 +312,27 @@ module.exports = (function(){
       classList.add('hidden')
       table.root_document.removeEventListener('click', boundColumnChooserOutsideHandler)
     }
-    //event.stopPropagation();
+
   }
 
   function onColumnChooserOutsideHandler(table, event){
-    if(!event.srcElement.classList.contains('column-chooser-button')){
-      let classList = table.elements.columnChooserMenuContainer.classList;
-      classList.add('hidden');
-      table.root_document.removeEventListener('click', boundColumnChooserOutsideHandler)
+    if(!event.srcElement.classList.contains('column-chooser')){
+      // console.log(event)
+      if(!event.srcElement.classList.contains('column-chooser-button')){
+        let classList = table.elements.columnChooserMenuContainer.classList;
+        classList.add('hidden');
+        table.root_document.removeEventListener('click', boundColumnChooserOutsideHandler)
+      }
     }
   }
 
-  function onColumnChooserChangeColumnHandler(table, event){
-    console.log(event)
+  function onColumnChooserChangeColumnHandler(table, column, event){
+    if(event.srcElement.checked){
+      table.hiddenColumns = table.hiddenColumns.filter(entry => entry != column);
+    } else {
+      table.hiddenColumns.push(column);
+    }
+    table.redrawTable();
   }
 
   function fillData(table, data){
@@ -472,7 +505,6 @@ module.exports = (function(){
   }
 
   function drawTable(table){
-    table.elements = {};
     table.elements.sortArrows = {};
 
     table.drawOptionals = {
@@ -487,21 +519,21 @@ module.exports = (function(){
     if(!table.data) table.data = [];      
     if(!table.sortedData) table.sortedData = table.data.map(value => value);
 
-    if(!table.header && table.data.length > 0){
+    if(!table.headerAll && table.data.length > 0){
       table.headerAll = generateHeader(table.data);
-    } else {
-      table.headerAll = table.header;
+      table.headerAll = table.headerAll.filter(column => 
+        !table.hiddenColumnsCondition
+          .map(condition => ({col: column, hidden: condition(column, table.data)}))
+          .filter(columnCond => columnCond.hidden)
+          .map(columnCond => columnCond.col)
+          .includes(column)
+        );
     }
 
     if(table.headerAll){
       table.header = 
         table.headerAll.filter(column => 
-          !table.hiddenColumns.includes(column) && 
-          !table.hiddenColumnsCondition
-            .map(condition => ({col: column, hidden: condition(column, table.data)}))
-            .filter(columnCond => columnCond.hidden)
-            .map(columnCond => columnCond.col)
-            .includes(column)
+          !table.hiddenColumns.includes(column)
         )
       table.style.gridTemplateColumns = `repeat(${table.header.length}, max-content)`;
     }
@@ -567,11 +599,11 @@ module.exports = (function(){
     );
   }
 
-  const funRegex = /^(?<function>(?:function\s*.*){0,1}\((?<args>[^\(\{\[\=\>]*)\)\s*(?:=>|\{)\s*[\{\(]{0,1}.*[\}\)]{0,1})$/gys;
+  const funRegex = /^((?:function\s*.*){0,1}\(([^\(\{\[\=\>]*)\)\s*(?:=>|\{)\s*[\{\(]{0,1}.*[\}\)]{0,1})$/gys;
 
   function deserializeFunction(funStr){
     let match = funRegex.exec(funStr);
-    let args = match.groups.args.split(',').map(str => str.trim())
+    let args = match.groups[2].split(',').map(str => str.trim())
     return new Function(...args, `return (${funStr.toString()})(${args.join(', ')})`)
   }
 
@@ -612,7 +644,7 @@ module.exports = (function(){
 
   function reapplySorting(table, partialOptions){
     resetSorting(table);
-    partialOptions['sortedBy'].slice(-4).reverse().forEach(sortStep => {
+    partialOptions['sortedBy'].reverse().slice(-4).forEach(sortStep => {
       if(sortStep.dir == 'desc'){
         onSortClick(table, sortStep.col)
       }
@@ -717,6 +749,7 @@ module.exports = (function(){
       this.tableId = 0;
 
       this.data = [];
+      
       this.hiddenColumns = ['Einzelpreis'];
       this.hiddenColumnsCondition = [
         (column, data) => (column.startsWith('#')),
@@ -973,7 +1006,6 @@ module.exports = (function(){
           partialOptions[option] = this[option];
         }
       });
-      console.log(partialOptions);
       drawTable(this);
       reapplySorting(this, partialOptions);
     }
