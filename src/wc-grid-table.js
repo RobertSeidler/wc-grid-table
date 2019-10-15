@@ -753,7 +753,7 @@ module.exports = (function(){
 
       this.data = [];
       
-      this.hiddenColumns = ['Einzelpreis'];
+      this.hiddenColumns = []; // ['Einzelpreis'];
       this.hiddenColumnsCondition = [
         (column, data) => (column.startsWith('#')),
       ];
@@ -782,15 +782,15 @@ module.exports = (function(){
         {name: 'unEquals', char: '&ne;', fn: compareFilter.bind(null, (a, b) => a != b)}, 
       ]
 
-      this.conditionalColumnStyle = [
+      this.conditionalColumnStyle = []; /*[
         {
           condition: (data, column) => (!Number.isNaN(data.reduce((col, cur) => (col += typeof cur[column] === "string" ? NaN : (cur[column] != undefined ? cur[column] : 0)), 0))),
           styles: ["text-align: right;"]
         },
-      ]
+      ]*/
 
       this.conditionalRowStyle = {
-        Rabattsatz: [
+       /* Rabattsatz: [
           {
             condition: function(value, index){
               return value == 0 && index % 2 != 0;
@@ -816,7 +816,7 @@ module.exports = (function(){
             styles: ["background-color: darkseagreen;", "color: black;"],
             fullrow: true
           }
-        ]
+        ]*/
       }
 
       this.conditionalStyleOptions = {
