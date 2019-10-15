@@ -1,6 +1,6 @@
 {
   "name": "wc-grid-table",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A table component implemented with css-grid and webcomponents.",
   "main": "dist/standalone/bundle.min.js",
   "scripts": {
