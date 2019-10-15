@@ -105,10 +105,13 @@ module.exports = (function(){
   }
 
   function filterChanged(table, column, event){
+    // s = getSelection().getRangeAt(0);
     table.filter[column] = event.srcElement.textContent;
     table.redrawData();
-    //console.log('filter changed')
+    // console.log(s)
     table.serializeLinkOptions()
+    // getSelection().removeAllRanges();
+    // getSelection().addRange(s)
   }
 
   /**
@@ -599,7 +602,7 @@ module.exports = (function(){
     );
   }
 
-  const funRegex = /^((?:function\s*.*){0,1}\(([^\(\{\[\=\>]*)\)\s*(?:=>|\{)\s*[\{\(]{0,1}.*[\}\)]{0,1})$/gys;
+  const funRegex = /^((?:function\s*.*){0,1}\(([^\(\{\[\=\>]*)\)\s*(?:=>|\{)\s*[\{\(]{0,1}.*[\}\)]{0,1})$/gy;
 
   function deserializeFunction(funStr){
     let match = funRegex.exec(funStr);
@@ -853,7 +856,7 @@ module.exports = (function(){
             this[option] = partialOptions[option];
           }
         });
-        resetFilterOperations(table)
+        resetFilterOperations(this)
         this.redrawData()
       }
     }
@@ -987,7 +990,9 @@ module.exports = (function(){
     redrawData(){
       this.header.forEach(column => {
         if (this.elements.dataCells[column]) [].forEach.call(this.elements.dataCells[column], element => element.remove());
-        this.elements.filterCells[column].firstChild.textContent = this.filter[column] ? this.filter[column] : '';
+        if (this.elements.filterCells[column].firstChild.textContent != this.filter[column]) this.elements.filterCells[column].firstChild.textContent = this.filter[column];
+        // this.elements.filterCells[column].firstChild.textContent = this.filter[column] ? this.filter[column] : '';
+
       }); 
       if (this.data.length > 0){
         let wasSelected = this.elements.pageChooser ? this.elements.pageChooser.classList.contains('selected') : false;

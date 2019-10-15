@@ -5,7 +5,7 @@
 .wgt-grid-container {
   display: grid;
   position: relative;
-  width: fit-content;
+  width: min-content;
   max-height: 500px;
   overflow-y: scroll;
   background: lightgray;
@@ -36,11 +36,12 @@
   margin-top: auto;
   margin-bottom: auto;
   font-family: monospace;
-  font-size: 1.5em;
+  font-size: large;
   vertical-align: middle;
   padding-top: 5px;
   padding-bottom: 5px;
   cursor: pointer;
+  -moz-user-select: text;   
 }
 
 .wgt-filter_cell {
@@ -127,7 +128,7 @@
   position: relative;
   border: 1px solid rgba(27, 31, 35, .2);
   border-radius: .25em;
-  width: fit-content;
+  width: min-content;
   overflow: visible;
   cursor: pointer;
   background-color: #eff3f6;
@@ -242,5 +243,5 @@
 
 .wgt-footer_cell {  
   border-right: 1px solid lightgray;
-  width: fit-content;
+  width: max-content;
 }
