@@ -15,6 +15,7 @@
   border: 1px solid lightgray;
 } 
 
+
 .wgt-header {
   font-weight: bold;
   position: sticky;
@@ -244,4 +245,14 @@
 .wgt-footer_cell {  
   border-right: 1px solid lightgray;
   width: max-content;
+}
+
+@-moz-document url-prefix() {
+  .wgt-grid-container div:nth-last-child(3).wgt-data-cell {
+    height: 200%;
+  }
+
+  .filter_negator {
+    font-size: 1em;
+  }
 }

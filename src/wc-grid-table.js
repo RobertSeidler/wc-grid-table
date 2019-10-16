@@ -343,7 +343,7 @@ module.exports = (function(){
     data.forEach((row, rowIndex) => {
       table.header.forEach( (column, columnIndex) => {
         let cell = document.createElement('div');
-        cell.classList.add('wgt-cell', 'wgt-data_cell', `wgt-column_${column}`, `wgt-row_${rowIndex}`, `wgt-zebra_${rowIndex % 2}`)
+        cell.classList.add('wgt-cell', 'wgt-data-cell', `wgt-column_${column}`, `wgt-row_${rowIndex}`, `wgt-zebra_${rowIndex % 2}`)
         // cell.classList.add()
         // cell.classList.add()
         cell.innerHTML = row[column] != undefined ? row[column] : '';
@@ -385,7 +385,7 @@ module.exports = (function(){
         conditionalColumnStyle.forEach((conditionalStyle) => {
           if(conditionalStyle.condition(data, column)){
             column_style_element.innerHTML += `
-              div.wgt-column_${column}.wgt-data_cell {
+              div.wgt-column_${column}.wgt-data-cell {
                 ${conditionalStyle.styles.join('\n')}
               }
             `
@@ -937,6 +937,14 @@ module.exports = (function(){
       this.tableId = this.root_document.querySelectorAll('.wgt-grid-container').length
       this.classList.add('wgt-grid-container')
       if(!this.sortedData && this.data) this.sortedData = this.data.map(value => value);
+      let height = this.getAttribute('height');
+      if(height) this.style.height = height;
+      let pageSize = this.getAttribute('page-size');
+      if(pageSize) {
+        this.pagination.pageSize = pageSize;
+        console.log(this.pagination.pageSize, this.options.pagination.pageSize);
+        this.options.pagination.pageSize = pageSize;
+      }
       this.loadLinkOptions();
       drawTable(this);
     }
