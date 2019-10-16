@@ -348,6 +348,7 @@ module.exports = (function(){
     } else {
       table.hiddenColumns.push(column);
     }
+    table.serializeLinkOptions();
     table.redrawTable();
   }
 
