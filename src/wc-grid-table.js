@@ -55,7 +55,7 @@ module.exports = (function(){
    * @param {string} column the column name (header) for which a compare function is to choose. 
    */
   function chooseSortsCompareFn(table, data, column){
-    if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined || cur[column] !== '' ? Number.parseFloat(cur[column]) : 0), 0))){
+    if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
       return table.customCompareNumbers
     } else {
       return table.customCompareText
@@ -463,7 +463,7 @@ module.exports = (function(){
         return table.customChooseSortsCompareFn(table, table.data, column)(a[column], b[column])
       })
       if(table.sortedBy[0].dir === 'desc')
-        sorted = [].concat(sorted.filter(entry => entry[column] != undefined).reverse(), sorted.filter(entry => entry[column] == undefined));
+        sorted = [].concat(sorted.filter(entry => entry[column] != undefined || entry[column] !== '').reverse(), sorted.filter(entry => entry[column] == undefined || entry[column] === ''));
       return sorted;
     } else {
       return table.sortedData;
