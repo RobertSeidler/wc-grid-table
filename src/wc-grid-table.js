@@ -98,20 +98,15 @@ module.exports = (function(){
         table.elements.sortArrows[column].arrowAlphaColor = 1;
         table.elements.sortArrows[column].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[column].arrowAlphaColor})`;
       }
-      //console.log('sort changed')
       table.serializeLinkOptions()
       if(doRedraw) table.redrawData()
     }
   }
 
   function filterChanged(table, column, event){
-    // s = getSelection().getRangeAt(0);
     table.filter[column] = event.srcElement.textContent;
     table.redrawData();
-    // console.log(s)
     table.serializeLinkOptions()
-    // getSelection().removeAllRanges();
-    // getSelection().addRange(s)
   }
 
   /**
@@ -124,11 +119,9 @@ module.exports = (function(){
     let newOperation = table.activeFilterOperations[column];
     if(newOperation === undefined || newOperation == '') newOperation = table.filterOperations[0].name;
     newOperation = table.filterOperations[(table.filterOperations.findIndex(element => (element.name == newOperation)) + 1) % table.filterOperations.length].name;
-    // console.log(newOperation)
     if(table.elements.filterOperations[column]) table.elements.filterOperations[column].innerHTML = table.filterOperations.find(op => op.name == newOperation).char;
     table.activeFilterOperations[column] = newOperation;
     table.redrawData();
-    //console.log('operation changed')
     table.serializeLinkOptions();
   }
 
@@ -144,10 +137,8 @@ module.exports = (function(){
       col_header.classList.add('wgt-header')
       col_header.classList.add(`wgt-column_${column}`)
       col_header.classList.add('wgt-cell')
-      // setUpSorting(col_header, column, table)
       col_header.innerHTML = column;
       table.append(col_header)
-      console.log(col_header.offsetHeight)
       col_height = col_header.offsetHeight;
 
       let sort_arrow = document.createElement('div');
@@ -163,7 +154,6 @@ module.exports = (function(){
     requestAnimationFrame(() => {
       table.header.forEach( (column, columnIndex) => {
         let col_header = table.elements.header[column];
-        console.log(col_header.offsetHeight)
         col_height = col_header.offsetHeight;
       })
       createStickyFilterStyle(table, col_height);
@@ -227,7 +217,6 @@ module.exports = (function(){
     footer.style.gridColumn = `1 / ${table.header.length + 1}`
 
     if(!table.elements.columnChooserMenuContainer){
-      console.log('creating menu')
       table.elements.columnChooserMenuContainer = createColumnChooserMenuContainer(table, table.headerAll);
       table.parentElement.insertBefore(table.elements.columnChooserMenuContainer, table.nextSibling);
     }
@@ -286,7 +275,6 @@ module.exports = (function(){
     checkBox.classList.add('column-chooser');
     boundColumnChooserChangeColumnHandler = onColumnChooserChangeColumnHandler.bind(null, table, column);
     checkBox.addEventListener('change', boundColumnChooserChangeColumnHandler);
-    console.log(boundColumnChooserChangeColumnHandler)
     table.elements.columnChooserCheckbox[column] = checkBox;
     label.prepend(checkBox);
     // label.innerHTML += column; 
@@ -333,7 +321,6 @@ module.exports = (function(){
 
   function onColumnChooserOutsideHandler(table, event){
     if(!event.srcElement.classList.contains('column-chooser')){
-      // console.log(event)
       if(!event.srcElement.classList.contains('column-chooser-button')){
         let classList = table.elements.columnChooserMenuContainer.classList;
         classList.add('hidden');
@@ -380,7 +367,6 @@ module.exports = (function(){
       cur.forEach(value => {
         if(!col.includes(value)) result.push(value)
       })
-      // console.log(result)
       return result;
     }, [])
   }
@@ -476,7 +462,6 @@ module.exports = (function(){
         header.map(column => {
           if(filter[column]){
             if (table.activeFilterOperations[column] == '' || table.activeFilterOperations[column] == undefined) table.activeFilterOperations[column] = table.filterOperations[0].name;
-            //console.log(table.activeFilterOperations[column])
             return table.filterOperations.find(op => (op.name == table.activeFilterOperations[column])).fn(filter[column], row[column]);
           } else return true;
         }).reduce((col, cur) => (col && cur), true)
@@ -496,7 +481,6 @@ module.exports = (function(){
           } else {
             formattedRow[column] = row[column]
           }
-          // console.log(formatter[column].reduce((col, cur) => cur(col, rowNr, dataReadOnly), row[column]), row[column])
         })
         return formattedRow;
       }) 
@@ -588,7 +572,6 @@ module.exports = (function(){
           table.drawOptionals.footer ? 'max-content' : ''}`; 
     fillData(table, pageinatedData);
     applyConditionalRowStyling(table, pageinatedData, table.header, table.conditionalRowStyle, table.conditionalStyleOptions);
-    // if(table.data.length > 0) console.log(table.sortedData[0], formattedData[0], filteredData[0], pageinatedData[0])
     return pageinatedData;
   }
 
@@ -654,9 +637,8 @@ module.exports = (function(){
         }
       }
     }
-    // console.log(oldParams, newParamKey, newParamValue)
     if (!replaced) result += `${newParamKey}=${newParamValue}&`;
-    return result.slice(0, -1);
+    return result.slice(0, -1) + location.hash;
   }
 
   function reapplySorting(table, partialOptions){
@@ -883,8 +865,6 @@ module.exports = (function(){
       let newSerializedValue = btoa(JSON.stringify(linkOptions, (key, value) => value instanceof Function ? serializeFunction(value) : value));
       let newUrlSearchParam = replaceUrlSearchParameter(`table${this.tableId}`, newSerializedValue);
       history.replaceState(history.state, '', newUrlSearchParam)
-      //console.log(atob(newSerializedValue))
-      // console.log(newUrlSearchParam)
     }
 
     loadLinkOptions(){
@@ -903,7 +883,6 @@ module.exports = (function(){
         }
       });
       this.loadPartialOptions(partialOptions);
-      // console.log(partialOptions)
       // this.redrawData():
     }
 
@@ -956,7 +935,6 @@ module.exports = (function(){
       let pageSize = this.getAttribute('page-size');
       if(pageSize) {
         this.pagination.pageSize = pageSize;
-        console.log(this.pagination.pageSize, this.options.pagination.pageSize);
         this.options.pagination.pageSize = pageSize;
       }
       this.loadLinkOptions();

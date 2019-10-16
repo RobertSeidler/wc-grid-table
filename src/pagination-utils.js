@@ -15,7 +15,6 @@ function getFrameStartEnd(currentPage, totalPages){
 
 function changePageTo(table, targetPage){
   table.pagination.currentPage = targetPage;
-  console.log('page changed');
   table.serializeLinkOptions();
   table.redrawData();
 }
