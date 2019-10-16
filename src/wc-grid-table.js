@@ -138,6 +138,7 @@ module.exports = (function(){
 
   function createHeader(table){
     let col_height = 0;
+    if(!table.elements.header) table.elements.header = {};
     table.header.forEach( (column, columnIndex) => {
       let col_header = document.createElement('div');
       col_header.classList.add('wgt-header')
@@ -152,12 +153,23 @@ module.exports = (function(){
       let sort_arrow = document.createElement('div');
       sort_arrow.classList.add('arrow');
       sort_arrow.innerHTML = '&#8693;';
+      
+      table.elements.header[column] = col_header;
       table.elements.sortArrows[column] = sort_arrow;
       setUpSorting(sort_arrow, column, table)
       col_header.append(sort_arrow)
 
     });
-    createStickyFilterStyle(table, col_height);
+    requestAnimationFrame(() => {
+      table.header.forEach( (column, columnIndex) => {
+        let col_header = table.elements.header[column];
+        console.log(col_header.offsetHeight)
+        col_height = col_header.offsetHeight;
+      })
+      createStickyFilterStyle(table, col_height);
+    })
+
+    // createStickyFilterStyle(table, col_height);
   }
 
   function createStickyFilterStyle(table, col_height){
