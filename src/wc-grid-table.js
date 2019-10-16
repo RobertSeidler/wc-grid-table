@@ -146,7 +146,8 @@ module.exports = (function(){
       // setUpSorting(col_header, column, table)
       col_header.innerHTML = column;
       table.append(col_header)
-      col_height = col_header.clientHeight;
+      console.log(col_header.offsetHeight)
+      col_height = col_header.offsetHeight;
 
       let sort_arrow = document.createElement('div');
       sort_arrow.classList.add('arrow');
@@ -168,7 +169,7 @@ module.exports = (function(){
     }
     tmp_style.innerHTML = `
       .wgt-filter_cell {
-        top: ${col_height + 1}px;
+        top: ${col_height}px;
       }
     `;    
     table.root_document.head.append(tmp_style);
