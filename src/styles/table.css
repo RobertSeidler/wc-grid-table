@@ -248,7 +248,7 @@
 }
 
 @-moz-document url-prefix() {
-  .wgt-grid-container div:nth-last-child(3).wgt-data-cell {
+  .wgt-grid-container div:nth-last-child(2).wgt-data-cell {
     height: 200%;
   }
 
