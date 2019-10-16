@@ -463,7 +463,7 @@ module.exports = (function(){
         return table.customChooseSortsCompareFn(table, table.data, column)(a[column], b[column])
       })
       if(table.sortedBy[0].dir === 'desc')
-        sorted = [].concat(sorted.filter(entry => entry[column] != undefined || entry[column] !== '').reverse(), sorted.filter(entry => entry[column] == undefined || entry[column] === ''));
+        sorted = [].concat(sorted.filter(entry => entry[column] != undefined && entry[column] !== '').reverse(), sorted.filter(entry => entry[column] == undefined || entry[column] === ''));
       return sorted;
     } else {
       return table.sortedData;
