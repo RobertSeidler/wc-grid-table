@@ -4,8 +4,8 @@
 
 .wgt-grid-container {
   display: grid;
-  position: relative;
-  width: min-content;
+  position: static;
+  max-width: min-content;
   max-height: 500px;
   overflow-y: scroll;
   background: lightgray;
@@ -121,7 +121,7 @@
   background: white;
   border-top: 1px solid lightgray;
   grid-template-rows: 1fr;
-  grid-template-columns: fit-content(300px) 1fr 1fr;
+  grid-template-columns: fit-content(300px) fit-content(300px) fit-content(300px) 1fr;
 }
 
 .column-chooser-button {
