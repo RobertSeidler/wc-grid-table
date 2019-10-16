@@ -234,6 +234,10 @@
   padding-right: 5px;
 }
 
+.page-change:first-child {
+  margin-top: auto !important;
+}
+
 .page-change:not(.page-change-disabled) {
   cursor: pointer;
 }
