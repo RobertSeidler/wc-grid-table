@@ -54,7 +54,7 @@ describe('compareText', () => {
   test('when equal, should return 0', () => {
     expect(compareText('22', '22')).toEqual(0);
     expect(compareText('test', 'test')).toEqual(0);
-    expect(compareText('', '')).toEqual(0);
+    expect(compareText('', '')).toEqual(1);
   });
 
   test('undefined values are supposed to always be "biggest"', () => {

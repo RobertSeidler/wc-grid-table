@@ -23,8 +23,8 @@ module.exports = (function(){
    * @param {number} b number to compare.
    */
   function compareNumbers(a, b){
-    if (a == undefined) return 1;
-    if (b == undefined) return -1;
+    if (a == undefined || a === '') return 1;
+    if (b == undefined || b === '') return -1;
     return a - b;
   }
   
@@ -38,8 +38,8 @@ module.exports = (function(){
    */
   function compareText(a, b){
     let result = 0;
-    if (a == undefined) return 1;
-    if (b == undefined) return -1;
+    if (a == undefined || a === '') return 1;
+    if (b == undefined || b === '') return -1;
     if (a.toString() > b.toString()) result = -1;
     if (a.toString() < b.toString()) result = 1;
     return result;
