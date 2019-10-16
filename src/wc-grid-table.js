@@ -951,7 +951,7 @@ module.exports = (function(){
       this.classList.add('wgt-grid-container')
       if(!this.sortedData && this.data) this.sortedData = this.data.map(value => value);
       let height = this.getAttribute('height');
-      if(height) this.style.height = height;
+      if(height) this.style.maxHeight = height;
       let pageSize = this.getAttribute('page-size');
       if(pageSize) {
         this.pagination.pageSize = pageSize;
