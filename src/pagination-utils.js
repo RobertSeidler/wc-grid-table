@@ -58,7 +58,7 @@ function createPageChooser(table, data) {
   let currentPage = table.pagination.currentPage;
   let totalPages = table.pagination.totalPages;
   if (table.pagination.active) {
-    element.classList.add('page-chooser', 'pagination');
+    element.classList.add('page-chooser', 'wgt-pagination');
     let front_disabled = currentPage == 1
     let back_disabled = currentPage == totalPages;
     element.append(createPageChooserChild('<<', table, 1, false, front_disabled));
@@ -80,7 +80,7 @@ function createPageChooser(table, data) {
 function createPageChooserChild(content, table, targetPage, isCurrent, isDisabled) {
   let element = document.createElement('div');
   element.innerHTML = content;
-  element.classList.add('page-change', 'pagination');
+  element.classList.add('page-change', 'wgt-pagination');
   if (isCurrent) {
     element.classList.add('active-page');
   } else {
