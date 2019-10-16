@@ -55,7 +55,7 @@ module.exports = (function(){
    * @param {string} column the column name (header) for which a compare function is to choose. 
    */
   function chooseSortsCompareFn(table, data, column){
-    if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
+    if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined || cur[column] !== '' ? Number.parseFloat(cur[column]) : 0), 0))){
       return table.customCompareNumbers
     } else {
       return table.customCompareText
