@@ -927,7 +927,7 @@ module.exports = (function(){
         this.options[option] = attributeOptions[option];
       })
 
-      this.tableId = this.root_document.querySelectorAll('.wgt-grid-container').length
+      this.tableId = this.root_document.querySelectorAll('.wgt-grid-container').length; //// TODO: check if multiple tables have consistantly different ids.
       this.classList.add('wgt-grid-container')
       if(!this.sortedData && this.data) this.sortedData = this.data.map(value => value);
       let height = this.getAttribute('height');
