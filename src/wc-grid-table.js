@@ -103,6 +103,21 @@ module.exports = (function(){
     }
   }
 
+  
+  function transformToGroupedData(initialData, groupColumns){
+    let groups = initialData.map(fullRow => {
+      let result = {};
+      groupColumns.forEach(groupColumn => {
+        result[groupColumn] = fullRow[groupColumn];
+      });
+      return result;
+    })
+      .reduce((col, cur) => (
+        !col.includes(cur) ? [].concat(col, [cur]) : col), []);
+
+    console.log(groups);
+  }
+
   function filterChanged(table, column, event){
     table.filter[column] = event.srcElement.textContent;
     table.redrawData();
@@ -965,6 +980,7 @@ module.exports = (function(){
      */
     setData(data){
       this.data = data;
+      console.log(transformToGroupedData(data, ["BelID", "Belegdatum", "Lieferant", "Nettobetrag"]))
       this.sortedData = data.map(value => value);
       drawTable(this);
       this.loadLinkOptions();

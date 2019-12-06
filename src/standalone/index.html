@@ -11,7 +11,7 @@
     let table = document.createElement('wc-grid-table');
     table.toggleAttribute('rewriteurl');
     
-    fetch('../data.json')
+    fetch('../grouped_data.json')
       .then(response => response.json())
       .then(data => table.setData(data))
 
