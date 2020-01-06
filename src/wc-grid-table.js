@@ -1,3 +1,9 @@
+//? FEATURE: maybe add possibility for horizontal header 
+
+//! TODO: try to add Event listener for visibilitychange, to fix filter column sticky top value for WIKI Tab change;
+//! maybe in protronic implementation
+
+
 /**
  * Project: wc-grid-table
  * Repository: https://github.com/RobertSeidler/wc-grid-table
@@ -525,7 +531,7 @@ module.exports = (function(){
 
     table.drawOptionals = {
       header: !table.hasAttribute('noheader'),
-      filter: !table.hasAttribute('nofilter'),
+      filter: !table.hasAttribute('nofilter'), //! TODO fix Broken nofilter
       footer: !table.hasAttribute('nofooter'),
       pagekey: !table.hasAttribute('nopagekey'),
       rewriteurl: table.hasAttribute('rewriteurl'),
