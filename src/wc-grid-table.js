@@ -3,7 +3,7 @@
 //? Bottom -> Up - css: { writing-mode: sideways-lr, text-orientation : sideways }
 
 //! TODO: try to add Event listener for visibilitychange, to fix filter column sticky top value for WIKI Tab change;
-//! maybe in protronic implementation
+//! should be implemented in prot-table-v3
 
 
 /**
@@ -15,6 +15,14 @@
  */
 
 require('./wc-grid-table.css');
+
+// test exception tracker with an actual module.
+//TODO: Comment out before packaging
+let appname = 'wc-grid-table';
+let tracker = require('../../exception-tracker-server/test-client/tracker.js')
+  .Tracker
+  .injectConsole('http://localhost:52005/', 'wc-grid-table', true, true, true);
+
 
 const {regexFilter, textFilter, compareFilter} = require('./filter-utils.js');
 const {createPageChooser, addKeyHandlerToDocument} = require('./pagination-utils.js');
@@ -123,7 +131,7 @@ module.exports = (function(){
       .reduce((col, cur) => (
         !col.includes(cur) ? [].concat(col, [cur]) : col), []);
 
-    console.log(groups);
+    // console.log(groups);
   }
 
   function filterChanged(table, column, event){
@@ -572,6 +580,10 @@ module.exports = (function(){
 
     if (table.data.length > 0){
       table.displayedData = drawData(table);
+
+      //? Log, that is send to Tracker Server:
+      console.log('Finished transform of data.', table.displayedData, appname);
+
       table.elements.pageChooser = createPageChooser(table, table.displayedData);
 
       if (table.drawOptionals.footer) createFooter(table, table.displayedData, table.elements.pageChooser);
@@ -988,7 +1000,7 @@ module.exports = (function(){
      */
     setData(data){
       this.data = data;
-      console.log(transformToGroupedData(data, ["BelID", "Belegdatum", "Lieferant", "Nettobetrag"]))
+      // console.log(transformToGroupedData(data, ["BelID", "Belegdatum", "Lieferant", "Nettobetrag"]))
       this.sortedData = data.map(value => value);
       drawTable(this);
       this.loadLinkOptions();
