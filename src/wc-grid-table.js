@@ -1,4 +1,6 @@
-//? FEATURE: maybe add possibility for horizontal header 
+//? FEATURE: maybe add possibility for horizontal header either
+//? Top -> Down - css: { writing-mode: sideways-rl, text-orientation : sideways } or
+//? Bottom -> Up - css: { writing-mode: sideways-lr, text-orientation : sideways }
 
 //! TODO: try to add Event listener for visibilitychange, to fix filter column sticky top value for WIKI Tab change;
 //! maybe in protronic implementation
