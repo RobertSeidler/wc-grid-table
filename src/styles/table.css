@@ -15,6 +15,21 @@
   border: 1px solid lightgray;
 } 
 
+.header-col-tooltip {
+  position: absolute;
+  font-weight: bold;
+  border: 1px solid lightgray;
+  border-right: 1px dotted lightgray;
+  pointer-events: none;
+  z-index: 99;
+  visibility: hidden;
+  margin: -1px;
+
+}
+
+.header-col-tooltip.visible {
+  visibility: visible;
+}
 
 .wgt-header {
   font-weight: bold;
@@ -22,6 +37,7 @@
   box-sizing: border-box;
   top: 0px;
   border-bottom: 1px solid lightgray;
+  overflow-y: hidden;
 }
 
 .wgt-header>div.arrow {
@@ -42,7 +58,15 @@
   padding-top: 5px;
   padding-bottom: 5px;
   cursor: pointer;
-  -moz-user-select: text;   
+  -moz-user-select: text;
+  background: white;
+  text-align: center;   
+  transform: scale(1,2)translate(20%, 13%);
+}
+
+.wgt-col-header-container {
+  width: 1em;
+  overflow-x: visible;
 }
 
 .wgt-filter_cell {
@@ -101,6 +125,7 @@
   padding-bottom: 10px;
   background: white;
   /* border: 2px solid lightgray; */
+  overflow-x: hidden;
 }
 
 .wgt-data-cell {
@@ -126,13 +151,13 @@
   background: white;
   border-top: 1px solid lightgray;
   grid-template-rows: 1fr;
-  grid-template-columns: fit-content(300px) fit-content(300px) fit-content(300px) 1fr;
+  grid-template-columns: repeat(4, fit-content(300px)) 1fr;
 }
 
-.column-chooser-button {
+.footer-button {
   position: relative;
   border: 1px solid rgba(27, 31, 35, .2);
-  border-radius: .25em;
+  /* border-radius: .25em; */
   width: min-content;
   overflow: visible;
   cursor: pointer;
@@ -147,11 +172,11 @@
   user-select: none;
 }
 
-.column-chooser-button:hover {
+.footer-button:hover {
   box-shadow: inset 0px 0px 20px 2px rgba(0, 0, 0, 0.2);
 }
 
-.column-chooser-button:after {
+.footer-button-down:after {
   display: inline-block;
   width: 0px;
   height: 0px;
@@ -162,7 +187,9 @@
 }
 
 .column-chooser-menu-container {
-  position: absolute;
+  /* position: absolute; */
+  position: relative;
+  width: 200px;
   /* top: 0px; */
   /* bottom: 0px; */
   left: 0px;
@@ -191,7 +218,7 @@
 
 .column-chooser-item {
   background-color: white;
-  border-radius: 5px;
+  /* border-radius: 5px; */
   margin-top: 1px;
   user-select: none;
   white-space: nowrap;
@@ -221,6 +248,8 @@
   font-family: monospace;
   grid-column: -1;
   border-left: none;
+  position: sticky;
+  right: 0px;
 }
 
 .page-chooser.selected {

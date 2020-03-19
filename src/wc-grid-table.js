@@ -19,9 +19,9 @@ require('./wc-grid-table.css');
 // test exception tracker with an actual module.
 //TODO: Comment out before packaging
 let appname = 'wc-grid-table';
-let tracker = require('../../exception-tracker-server/test-client/tracker.js')
-  .Tracker
-  .injectConsole('http://localhost:52005/', 'wc-grid-table', true, true, true);
+// let tracker = require('../../exception-tracker-server/test-client/tracker.js')
+//   .Tracker
+//   .injectConsole('http://localhost:52005/', 'wc-grid-table', true, true, true);
 
 
 const {regexFilter, textFilter, compareFilter} = require('./filter-utils.js');
@@ -29,6 +29,35 @@ const {createPageChooser, addKeyHandlerToDocument} = require('./pagination-utils
 
 module.exports = (function(){
   // Closure, so that only functions I want to expose are getting exposed.
+
+  function defineSetPrototypeFunctions(){
+    /**
+     * @param {Iterable} an iterable, that should be unioned with the starting Set
+     */
+    Object.defineProperty(Set.prototype, 'union', {
+      value: function(anotherSet){
+        for(element of anotherSet){
+          console.log(element)
+          this.add(element);
+        }
+        return this;
+      },
+      enumerable: false,
+    });
+  }
+
+  const testNumberRegex = /^([0-9]{1,3}(?:[\.|,]{0,1}[0-9]{3})*[\.|\,]{0,1}[0-9]*)\s{0,1}\D*$/i;
+
+  function tryTransformToNumber(testStr){
+    let matches = testNumberRegex.exec(testStr.toString());
+    let result;
+    if(matches){
+      result = Number.parseFloat(matches[1]);
+    } else {
+      result = testStr;
+    }
+    return result;
+  }
 
   /**
    * Compare function for comparing numbers for sorting. Additionally undefined values are 
@@ -41,10 +70,10 @@ module.exports = (function(){
   function compareNumbers(a, b){
     if (a == undefined || a === '') return 1;
     if (b == undefined || b === '') return -1;
-    return a - b;
+    return tryTransformToNumber(b) - tryTransformToNumber(a);
   }
   
-  /**
+/**
    * Compare function for comparing strings for sorting. Additionally undefined values are
    * always the 'smaller' value, so that they get sorted to the bottom. 
    * Can be replaced by supplying a custom compare function to TableComponent.customCompareText.
@@ -71,7 +100,8 @@ module.exports = (function(){
    * @param {string} column the column name (header) for which a compare function is to choose. 
    */
   function chooseSortsCompareFn(table, data, column){
-    if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
+    // if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
+    if(data.every(row => (typeof(tryTransformToNumber(row[column])) == 'number'))){
       return table.customCompareNumbers
     } else {
       return table.customCompareText
@@ -135,6 +165,7 @@ module.exports = (function(){
   }
 
   function filterChanged(table, column, event){
+    table.pagination.currentPage = 1;
     table.filter[column] = event.srcElement.textContent;
     table.redrawData();
     table.serializeLinkOptions()
@@ -160,27 +191,60 @@ module.exports = (function(){
     element.addEventListener('click', (event) => onSortClick(table, column, event, true))
   }
 
+  function createHeaderTooltip(table){
+    let tooltip = table.elements.tooltip = document.createElement('div');
+    tooltip.state = {
+      offsetLeft: 0
+    }
+    tooltip.classList.add('header-col-tooltip');
+    tooltip.classList.add('wgt-cell');
+    table.append(tooltip)
+  }
+
+  function onHeaderMouseEnter(table, columnElement, columnName){
+    table.elements.tooltip.innerHTML = columnName;
+    table.elements.tooltip.state.offsetLeft = columnElement.offsetLeft;
+    table.elements.tooltip.style.left = `${(columnElement.offsetLeft) - table.scrollLeft}px`;
+    table.elements.tooltip.classList.add('visible');
+  }
+
+  function onHeaderMouseLeave(table, columnElement, columnName){
+    table.elements.tooltip.classList.remove('visible');
+  }
+
   function createHeader(table){
     let col_height = 0;
+    createHeaderTooltip(table);
     if(!table.elements.header) table.elements.header = {};
     table.header.forEach( (column, columnIndex) => {
       let col_header = document.createElement('div');
       col_header.classList.add('wgt-header')
       col_header.classList.add(`wgt-column_${column}`)
-      col_header.classList.add('wgt-cell')
-      col_header.innerHTML = column;
+      col_header.classList.add('wgt-cell');
+      let col_container = document.createElement('div');
+      col_container.classList.add('wgt-col-header-container');
+      col_container.innerHTML = column;
+      col_header.append(col_container);
+      col_header.addEventListener('mouseenter', onHeaderMouseEnter.bind(this, table, col_header, column));
+      col_header.addEventListener('mouseleave', onHeaderMouseLeave.bind(this, table, col_header, column));
       table.append(col_header)
       col_height = col_header.offsetHeight;
-
       let sort_arrow = document.createElement('div');
       sort_arrow.classList.add('arrow');
       sort_arrow.innerHTML = '&#8693;';
-      
+      sort_arrow.addEventListener('mouseenter', function (event){
+        onHeaderMouseLeave(table, col_header, column);
+        event.stopPropagation();
+      });
+      sort_arrow.addEventListener('mouseleave', onHeaderMouseEnter.bind(this, table, col_header, column));
       table.elements.header[column] = col_header;
       table.elements.sortArrows[column] = sort_arrow;
       setUpSorting(sort_arrow, column, table)
       col_header.append(sort_arrow)
 
+    });
+    table.addEventListener('scroll', (event) => {
+      table.elements.tooltip.style.left = `${(table.elements.tooltip.state.offsetLeft) - table.scrollLeft}px`;
     });
     requestAnimationFrame(() => {
       table.header.forEach( (column, columnIndex) => {
@@ -241,6 +305,20 @@ module.exports = (function(){
     })
   }
 
+  function createResetLinkButton(table){
+    let btn = document.createElement('div');
+    btn.classList.add('footer-button', 'wgt-footer-cell', 'wgt-cell');
+    btn.innerHTML = 'reset';
+    btn.addEventListener('click', function(event){
+      if(confirm('Sicher, dass alle angewendeten Umformungen zurückgesetzt werden sollen')){
+        let url = new URL(location.href);
+        url.search = '';
+        location.href = url.href;
+      }
+    });
+    return btn;
+  }
+
   function createFooter(table, data, pageChooser){
     bindColumnChooserHandler(table); 
     let footer = document.createElement('div');
@@ -267,6 +345,7 @@ module.exports = (function(){
     }
     
     if(footer) footer.append(createColumnChooserButton(table));
+    if(table.drawOptionals.rewriteurl) footer.append(createResetLinkButton(table));
     if(pageChooser) footer.append(pageChooser);
     if(table.elements.footer) table.elements.footer.remove();
     table.elements.footer = footer;
@@ -284,7 +363,7 @@ module.exports = (function(){
 
   function createColumnChooserButton(table){
     let but = document.createElement('div');
-    but.classList.add('wgt-footer_cell', 'wgt-cell', 'column-chooser-button');
+    but.classList.add('wgt-footer_cell', 'wgt-cell', 'footer-button-down', 'footer-button');
     but.innerHTML = 'columns';
     but.addEventListener('click', boundColumnChooserButtonHandler);
     return but;    
@@ -319,7 +398,8 @@ module.exports = (function(){
     menu.classList.add('column-chooser-menu', 'column-chooser');
     let menuContainer = document.createElement('div');
     menuContainer.classList.add('column-chooser-menu-container', 'hidden')
-    allHeader.forEach(column => {
+    console.log((new Set(allHeader)).union(table.hiddenColumns));
+    ((new Set(allHeader)).union(table.hiddenColumns)).forEach(column => {
       menu.append(createColumnChooserMenuItems(table, column));
     })
     menuContainer.append(menu)
@@ -352,7 +432,7 @@ module.exports = (function(){
 
   function onColumnChooserOutsideHandler(table, event){
     if(!event.srcElement.classList.contains('column-chooser')){
-      if(!event.srcElement.classList.contains('column-chooser-button')){
+      if(!event.srcElement.classList.contains('footer-button')){
         let classList = table.elements.columnChooserMenuContainer.classList;
         classList.add('hidden');
         table.root_document.removeEventListener('click', boundColumnChooserOutsideHandler)
@@ -544,7 +624,7 @@ module.exports = (function(){
       filter: !table.hasAttribute('nofilter'), //! TODO fix Broken nofilter
       footer: !table.hasAttribute('nofooter'),
       pagekey: !table.hasAttribute('nopagekey'),
-      rewriteurl: table.hasAttribute('rewriteurl'),
+      rewriteurl: !table.hasAttribute('norewriteurl'),
     }
     
     table.innerHTML = "";
@@ -553,13 +633,24 @@ module.exports = (function(){
 
     if(!table.headerAll && table.data.length > 0){
       table.headerAll = generateHeader(table.data);
-      table.headerAll = table.headerAll.filter(column => 
-        !table.hiddenColumnsCondition
+      
+      table.hiddenColumns = table.hiddenColumns.concat(table.headerAll.filter(column =>
+        table.hiddenColumnsCondition
           .map(condition => ({col: column, hidden: condition(column, table.data)}))
           .filter(columnCond => columnCond.hidden)
           .map(columnCond => columnCond.col)
           .includes(column)
-        );
+      ));
+    }
+
+    if(table.headerAll && table.elements.columnChooserCheckbox) {
+      for(let column of table.headerAll){
+        if(table.hiddenColumns.includes(column)){
+          table.elements.columnChooserCheckbox[column].checked = false;
+        } else {
+          table.elements.columnChooserCheckbox[column].checked = true;
+        }
+      }
     }
 
     if(table.headerAll){
@@ -726,6 +817,8 @@ module.exports = (function(){
     constructor(){
       super();
 
+      defineSetPrototypeFunctions();
+
       this.linkOptions = [
         'pagination',
         'filter',
@@ -788,6 +881,7 @@ module.exports = (function(){
       this.hiddenColumnsCondition = [
         (column, data) => (column.startsWith('#')),
       ];
+
       this.elements.sortArrows = {};
       this.optionalDebounceFn = undefined;
       this.activeFilterOperations = {};
@@ -973,6 +1067,7 @@ module.exports = (function(){
         this.options.pagination.pageSize = pageSize;
       }
       this.loadLinkOptions();
+
       drawTable(this);
     }
 
