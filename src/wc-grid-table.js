@@ -43,6 +43,7 @@ module.exports = (function(){
         return this;
       },
       enumerable: false,
+      writable: true,
     });
   }
 
@@ -712,15 +713,8 @@ module.exports = (function(){
   function defineOptionProperties(table, props){
     props.forEach(prop => 
       Object.defineProperty(table, prop, {
-        set(newValue){
-          table.options[prop] = newValue;
-          // if(table.linkOptions.includes(prop)) table.serializeLinkOptions();
-          if(table.header) table.redrawData();
-        },
-        get(){
-          return table.options[prop];
-        },
-        enumerable: true
+        enumerable: true,
+        writable: true
       })
     );
   }
@@ -768,6 +762,7 @@ module.exports = (function(){
   }
 
   function reapplySorting(table, partialOptions){
+    console.log('reaply sorting')
     resetSorting(table);
     partialOptions['sortedBy'].reverse().slice(-4).forEach(sortStep => {
       if(sortStep.dir == 'desc'){
@@ -860,7 +855,7 @@ module.exports = (function(){
         'customChooseSortsCompareFn',
         'hiddenColumns',
         'hiddenColumnsCondition',
-      ])
+      ]);
 
       this.useDefaultOptions();
     }
@@ -971,6 +966,7 @@ module.exports = (function(){
 
     loadPartialOptions(partialOptions){
       if (this.data.length > 0){
+        console.log('partial', partialOptions)
         Object.keys(partialOptions).forEach(option => {
           if(option == 'sortedBy'){
             reapplySorting(this, partialOptions);
@@ -993,7 +989,7 @@ module.exports = (function(){
       })
       let newSerializedValue = btoa(JSON.stringify(linkOptions, (key, value) => value instanceof Function ? serializeFunction(value) : value));
       let newUrlSearchParam = replaceUrlSearchParameter(`table${this.tableId}`, newSerializedValue);
-      history.replaceState(history.state, '', newUrlSearchParam)
+      if(this.drawOptionals.rewriteurl) history.replaceState(history.state, '', newUrlSearchParam)
     }
 
     loadLinkOptions(){
@@ -1011,7 +1007,7 @@ module.exports = (function(){
           return value
         }
       });
-      this.loadPartialOptions(partialOptions);
+      return partialOptions;
       // this.redrawData():
     }
 
@@ -1021,7 +1017,7 @@ module.exports = (function(){
 
     deserializeOptions(serializedOptions){
       if(serializedOptions){
-        return atob(JSON.parse(serializedOptions, (key, value) => {
+        return JSON.parse(atob(serializedOptions, (key, value) => {
           if (!(value instanceof Array)  && value.toString().match(funRegex)) {
             return deserializeFunction(value);
           } else {
@@ -1051,10 +1047,6 @@ module.exports = (function(){
     connectedCallback(){
       if(!this.root_document.body) this.root_document.body = document.createElement('body');
       if(!this.root_document.head) this.root_document.head = document.createElement('head');
-      let attributeOptions = this.deserializeOptions(this.getAttribute('options'));
-      Object.keys(attributeOptions).forEach(option => {
-        this.options[option] = attributeOptions[option];
-      })
 
       this.tableId = this.root_document.querySelectorAll('.wgt-grid-container').length
       this.classList.add('wgt-grid-container')
@@ -1066,10 +1058,27 @@ module.exports = (function(){
         this.pagination.pageSize = pageSize;
         this.options.pagination.pageSize = pageSize;
       }
-      this.loadLinkOptions();
 
+      this.loadInitialOptions();
       drawTable(this);
     }
+
+    loadInitialOptions(){
+      let attributeOptions = this.deserializeOptions(this.getAttribute('options'));
+      let linkOptions = this.loadLinkOptions();
+
+      ((new Set(Object.keys(attributeOptions))).union(Object.keys(linkOptions))).forEach(option => {
+        if(attributeOptions[option]){
+          this.options[option] = attributeOptions[option];
+        }
+        if(linkOptions[option] && Object.keys(linkOptions[option]).length != 0){
+          this.options[option] = linkOptions[option];
+        }
+      });
+      console.log(this.options)
+
+      this.loadPartialOptions(this.options);
+    } 
 
     /**
      * Configure a debounce function for event based table changes like sortClick and filterChange.
@@ -1098,7 +1107,7 @@ module.exports = (function(){
       // console.log(transformToGroupedData(data, ["BelID", "Belegdatum", "Lieferant", "Nettobetrag"]))
       this.sortedData = data.map(value => value);
       drawTable(this);
-      this.loadLinkOptions();
+      this.loadInitialOptions();
     }
 
     /**
@@ -1121,7 +1130,7 @@ module.exports = (function(){
     redrawData(){
       this.header.forEach(column => {
         if (this.elements.dataCells[column]) [].forEach.call(this.elements.dataCells[column], element => element.remove());
-        if (this.elements.filterCells[column].firstChild.textContent != this.filter[column]) this.elements.filterCells[column].firstChild.textContent = this.filter[column];
+        if (this.drawOptionals.filter && this.elements.filterCells[column].firstChild.textContent != this.filter[column]) this.elements.filterCells[column].firstChild.textContent = this.filter[column];
         // this.elements.filterCells[column].firstChild.textContent = this.filter[column] ? this.filter[column] : '';
 
       }); 

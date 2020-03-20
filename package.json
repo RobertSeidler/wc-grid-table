@@ -28,8 +28,8 @@
   "devDependencies": {
     "browserify": "^16.5.0",
     "browserify-css": "^0.15.0",
-    "http-server": "^0.11.1",
-    "jest": "^24.9.0",
+    "http-server": "^0.12.1",
+    "jest": "^25.1.0",
     "jest-css-modules": "^2.1.0",
     "tinyify": "^2.5.1"
   },
