@@ -1011,10 +1011,6 @@ module.exports = (function(){
       // this.redrawData():
     }
 
-    serializeOptions(){
-      return btoa(JSON.stringify(this.options, (key, value) => value instanceof Function ? serializeFunction(value) : value))
-    }
-
     deserializeOptions(serializedOptions){
       if(serializedOptions){
         return JSON.parse(atob(serializedOptions, (key, value) => {
@@ -1056,7 +1052,6 @@ module.exports = (function(){
       let pageSize = this.getAttribute('page-size');
       if(pageSize) {
         this.pagination.pageSize = pageSize;
-        this.options.pagination.pageSize = pageSize;
       }
 
       this.loadInitialOptions();

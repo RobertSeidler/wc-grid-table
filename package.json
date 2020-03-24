@@ -4,8 +4,8 @@
   "description": "A table component implemented with css-grid and webcomponents.",
   "main": "dist/standalone/bundle.min.js",
   "scripts": {
-    "setup_folder": "mkdir -p dist && mkdir -p dist/example1 && mkdir -p dist/standalone && mkdir -p dist/styles",
-    "copy_public": "cp src/public/* dist && cp src/example1/* dist/example1 && cp src/standalone/* dist/standalone && cp src/styles/* dist/styles",
+    "setup_folder": "mkdir -p dist && mkdir -p dist/example1 && mkdir -p dist/standalone",
+    "copy_public": "cp src/public/* dist && cp src/example1/* dist/example1 && cp src/standalone/* dist/standalone",
     "build": "browserify -t browserify-css src/wc-grid-table.js > dist/bundle.js",
     "build_min": "browserify -p tinyify -t browserify-css src/wc-grid-table.js > dist/bundle.min.js",
     "build_standalone": "browserify -t browserify-css src/wc-grid-table.js --standalone WcGridTable > dist/standalone/bundle.js",
