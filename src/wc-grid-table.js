@@ -253,9 +253,18 @@ module.exports = (function(){
       table.header.forEach( (column, columnIndex) => {
         let col_header = table.elements.header[column];
         col_height = col_header.offsetHeight;
+        setInterval((() => {
+          if (col_header.offsetHeight > 0)
+            table.elements.stickyStyle.innerHTML = `
+              .table-id-${table.tableId} > .wgt-filter_cell {
+                top: ${col_header.offsetHeight}px;
+              }
+            `;
+        }), 1000)
       })
       createStickyFilterStyle(table, col_height);
-    })
+    });
+
 
     // createStickyFilterStyle(table, col_height);
   }
@@ -268,7 +277,7 @@ module.exports = (function(){
       tmp_style.classList.add('sticky_filter_offset');
     }
     tmp_style.innerHTML = `
-      .table-id-${table.tableId} .wgt-filter_cell {
+      .table-id-${table.tableId} > .wgt-filter_cell {
         top: ${col_height}px;
       }
     `;    
