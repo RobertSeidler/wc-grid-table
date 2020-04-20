@@ -1047,7 +1047,7 @@ module.exports = (function(){
       if(!this.root_document.body) this.root_document.body = document.createElement('body');
       if(!this.root_document.head) this.root_document.head = document.createElement('head');
 
-      this.tableId = this.root_document.querySelectorAll('.wgt-grid-container').length; //// TODO: check if multiple tables have consistantly different ids.
+      // this.tableId = this.root_document.querySelectorAll('.wgt-grid-container').length; //// TODO: check if multiple tables have consistantly different ids.
       this.classList.add(`table-id-${this.tableId}`);      
       this.classList.add('wgt-grid-container')
       if(!this.sortedData && this.data) this.sortedData = this.data.map(value => value);
