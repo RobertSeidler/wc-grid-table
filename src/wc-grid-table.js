@@ -1,3 +1,11 @@
+//? FEATURE: maybe add possibility for horizontal header either
+//? Top -> Down - css: { writing-mode: sideways-rl, text-orientation : sideways } or
+//? Bottom -> Up - css: { writing-mode: sideways-lr, text-orientation : sideways }
+
+//! TODO: try to add Event listener for visibilitychange, to fix filter column sticky top value for WIKI Tab change;
+//! should be implemented in prot-table-v3
+
+
 /**
  * Project: wc-grid-table
  * Repository: https://github.com/RobertSeidler/wc-grid-table
@@ -8,11 +16,49 @@
 
 require('./wc-grid-table.css');
 
+// test exception tracker with an actual module.
+//TODO: Comment out before packaging
+let appname = 'wc-grid-table';
+// let tracker = require('../../exception-tracker-server/test-client/tracker.js')
+//   .Tracker
+//   .injectConsole('http://localhost:52005/', 'wc-grid-table', true, true, true);
+
+
 const {regexFilter, textFilter, compareFilter} = require('./filter-utils.js');
 const {createPageChooser, addKeyHandlerToDocument} = require('./pagination-utils.js');
 
 module.exports = (function(){
   // Closure, so that only functions I want to expose are getting exposed.
+
+  function defineSetPrototypeFunctions(){
+    /**
+     * @param {Iterable} an iterable, that should be unioned with the starting Set
+     */
+    Object.defineProperty(Set.prototype, 'union', {
+      value: function(anotherSet){
+        for(element of anotherSet){
+          console.log(element)
+          this.add(element);
+        }
+        return this;
+      },
+      enumerable: false,
+      writable: true,
+    });
+  }
+
+  const testNumberRegex = /^([0-9]{1,3}(?:[\.|,]{0,1}[0-9]{3})*[\.|\,]{0,1}[0-9]*)\s{0,1}\D*$/i;
+
+  function tryTransformToNumber(testStr){
+    let matches = testNumberRegex.exec(testStr.toString());
+    let result;
+    if(matches){
+      result = Number.parseFloat(matches[1]);
+    } else {
+      result = testStr;
+    }
+    return result;
+  }
 
   /**
    * Compare function for comparing numbers for sorting. Additionally undefined values are 
@@ -25,10 +71,10 @@ module.exports = (function(){
   function compareNumbers(a, b){
     if (a == undefined || a === '') return 1;
     if (b == undefined || b === '') return -1;
-    return a - b;
+    return tryTransformToNumber(b) - tryTransformToNumber(a);
   }
   
-  /**
+/**
    * Compare function for comparing strings for sorting. Additionally undefined values are
    * always the 'smaller' value, so that they get sorted to the bottom. 
    * Can be replaced by supplying a custom compare function to TableComponent.customCompareText.
@@ -55,7 +101,8 @@ module.exports = (function(){
    * @param {string} column the column name (header) for which a compare function is to choose. 
    */
   function chooseSortsCompareFn(table, data, column){
-    if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
+    // if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
+    if(data.every(row => (typeof(tryTransformToNumber(row[column])) == 'number'))){
       return table.customCompareNumbers
     } else {
       return table.customCompareText
@@ -103,7 +150,23 @@ module.exports = (function(){
     }
   }
 
+  
+  function transformToGroupedData(initialData, groupColumns){
+    let groups = initialData.map(fullRow => {
+      let result = {};
+      groupColumns.forEach(groupColumn => {
+        result[groupColumn] = fullRow[groupColumn];
+      });
+      return result;
+    })
+      .reduce((col, cur) => (
+        !col.includes(cur) ? [].concat(col, [cur]) : col), []);
+
+    // console.log(groups);
+  }
+
   function filterChanged(table, column, event){
+    table.pagination.currentPage = 1;
     table.filter[column] = event.srcElement.textContent;
     table.redrawData();
     table.serializeLinkOptions()
@@ -129,27 +192,60 @@ module.exports = (function(){
     element.addEventListener('click', (event) => onSortClick(table, column, event, true))
   }
 
+  function createHeaderTooltip(table){
+    let tooltip = table.elements.tooltip = document.createElement('div');
+    tooltip.state = {
+      offsetLeft: 0
+    }
+    tooltip.classList.add('header-col-tooltip');
+    tooltip.classList.add('wgt-cell');
+    table.append(tooltip)
+  }
+
+  function onHeaderMouseEnter(table, columnElement, columnName){
+    table.elements.tooltip.innerHTML = columnName;
+    table.elements.tooltip.state.offsetLeft = columnElement.offsetLeft;
+    table.elements.tooltip.style.left = `${(columnElement.offsetLeft) - table.scrollLeft}px`;
+    table.elements.tooltip.classList.add('visible');
+  }
+
+  function onHeaderMouseLeave(table, columnElement, columnName){
+    table.elements.tooltip.classList.remove('visible');
+  }
+
   function createHeader(table){
     let col_height = 0;
+    createHeaderTooltip(table);
     if(!table.elements.header) table.elements.header = {};
     table.header.forEach( (column, columnIndex) => {
       let col_header = document.createElement('div');
       col_header.classList.add('wgt-header')
       col_header.classList.add(`wgt-column_${column}`)
-      col_header.classList.add('wgt-cell')
-      col_header.innerHTML = column;
+      col_header.classList.add('wgt-cell');
+      let col_container = document.createElement('div');
+      col_container.classList.add('wgt-col-header-container');
+      col_container.innerHTML = column;
+      col_header.append(col_container);
+      col_header.addEventListener('mouseenter', onHeaderMouseEnter.bind(this, table, col_header, column));
+      col_header.addEventListener('mouseleave', onHeaderMouseLeave.bind(this, table, col_header, column));
       table.append(col_header)
       col_height = col_header.offsetHeight;
-
       let sort_arrow = document.createElement('div');
       sort_arrow.classList.add('arrow');
       sort_arrow.innerHTML = '&#8693;';
-      
+      sort_arrow.addEventListener('mouseenter', function (event){
+        onHeaderMouseLeave(table, col_header, column);
+        event.stopPropagation();
+      });
+      sort_arrow.addEventListener('mouseleave', onHeaderMouseEnter.bind(this, table, col_header, column));
       table.elements.header[column] = col_header;
       table.elements.sortArrows[column] = sort_arrow;
       setUpSorting(sort_arrow, column, table)
       col_header.append(sort_arrow)
 
+    });
+    table.addEventListener('scroll', (event) => {
+      table.elements.tooltip.style.left = `${(table.elements.tooltip.state.offsetLeft) - table.scrollLeft}px`;
     });
     requestAnimationFrame(() => {
       table.header.forEach( (column, columnIndex) => {
@@ -170,7 +266,7 @@ module.exports = (function(){
       tmp_style.classList.add('sticky_filter_offset');
     }
     tmp_style.innerHTML = `
-      .wgt-filter_cell {
+      .table-id-${table.tableId} .wgt-filter_cell {
         top: ${col_height}px;
       }
     `;    
@@ -210,6 +306,20 @@ module.exports = (function(){
     })
   }
 
+  function createResetLinkButton(table){
+    let btn = document.createElement('div');
+    btn.classList.add('footer-button', 'wgt-footer-cell', 'wgt-cell');
+    btn.innerHTML = 'reset';
+    btn.addEventListener('click', function(event){
+      if(confirm('Sicher, dass alle angewendeten Umformungen zurückgesetzt werden sollen')){
+        let url = new URL(location.href);
+        url.search = '';
+        location.href = url.href;
+      }
+    });
+    return btn;
+  }
+
   function createFooter(table, data, pageChooser){
     bindColumnChooserHandler(table); 
     let footer = document.createElement('div');
@@ -236,6 +346,7 @@ module.exports = (function(){
     }
     
     if(footer) footer.append(createColumnChooserButton(table));
+    if(table.drawOptionals.rewriteurl) footer.append(createResetLinkButton(table));
     if(pageChooser) footer.append(pageChooser);
     if(table.elements.footer) table.elements.footer.remove();
     table.elements.footer = footer;
@@ -253,7 +364,7 @@ module.exports = (function(){
 
   function createColumnChooserButton(table){
     let but = document.createElement('div');
-    but.classList.add('wgt-footer_cell', 'wgt-cell', 'column-chooser-button');
+    but.classList.add('wgt-footer_cell', 'wgt-cell', 'footer-button-down', 'footer-button');
     but.innerHTML = 'columns';
     but.addEventListener('click', boundColumnChooserButtonHandler);
     return but;    
@@ -288,7 +399,8 @@ module.exports = (function(){
     menu.classList.add('column-chooser-menu', 'column-chooser');
     let menuContainer = document.createElement('div');
     menuContainer.classList.add('column-chooser-menu-container', 'hidden')
-    allHeader.forEach(column => {
+    console.log((new Set(allHeader)).union(table.hiddenColumns));
+    ((new Set(allHeader)).union(table.hiddenColumns)).forEach(column => {
       menu.append(createColumnChooserMenuItems(table, column));
     })
     menuContainer.append(menu)
@@ -321,7 +433,7 @@ module.exports = (function(){
 
   function onColumnChooserOutsideHandler(table, event){
     if(!event.srcElement.classList.contains('column-chooser')){
-      if(!event.srcElement.classList.contains('column-chooser-button')){
+      if(!event.srcElement.classList.contains('footer-button')){
         let classList = table.elements.columnChooserMenuContainer.classList;
         classList.add('hidden');
         table.root_document.removeEventListener('click', boundColumnChooserOutsideHandler)
@@ -510,10 +622,10 @@ module.exports = (function(){
 
     table.drawOptionals = {
       header: !table.hasAttribute('noheader'),
-      filter: !table.hasAttribute('nofilter'),
+      filter: !table.hasAttribute('nofilter'), //! TODO fix Broken nofilter
       footer: !table.hasAttribute('nofooter'),
       pagekey: !table.hasAttribute('nopagekey'),
-      rewriteurl: table.hasAttribute('rewriteurl'),
+      rewriteurl: !table.hasAttribute('norewriteurl'),
     }
     
     table.innerHTML = "";
@@ -522,13 +634,24 @@ module.exports = (function(){
 
     if(!table.headerAll && table.data.length > 0){
       table.headerAll = generateHeader(table.data);
-      table.headerAll = table.headerAll.filter(column => 
-        !table.hiddenColumnsCondition
+      
+      table.hiddenColumns = table.hiddenColumns.concat(table.headerAll.filter(column =>
+        table.hiddenColumnsCondition
           .map(condition => ({col: column, hidden: condition(column, table.data)}))
           .filter(columnCond => columnCond.hidden)
           .map(columnCond => columnCond.col)
           .includes(column)
-        );
+      ));
+    }
+
+    if(table.headerAll && table.elements.columnChooserCheckbox) {
+      for(let column of table.headerAll){
+        if(table.hiddenColumns.includes(column)){
+          table.elements.columnChooserCheckbox[column].checked = false;
+        } else {
+          table.elements.columnChooserCheckbox[column].checked = true;
+        }
+      }
     }
 
     if(table.headerAll){
@@ -549,6 +672,10 @@ module.exports = (function(){
 
     if (table.data.length > 0){
       table.displayedData = drawData(table);
+
+      //? Log, that is send to Tracker Server:
+      console.log('Finished transform of data.', table.displayedData, appname);
+
       table.elements.pageChooser = createPageChooser(table, table.displayedData);
 
       if (table.drawOptionals.footer) createFooter(table, table.displayedData, table.elements.pageChooser);
@@ -586,15 +713,8 @@ module.exports = (function(){
   function defineOptionProperties(table, props){
     props.forEach(prop => 
       Object.defineProperty(table, prop, {
-        set(newValue){
-          table.options[prop] = newValue;
-          // if(table.linkOptions.includes(prop)) table.serializeLinkOptions();
-          if(table.header) table.redrawData();
-        },
-        get(){
-          return table.options[prop];
-        },
-        enumerable: true
+        enumerable: true,
+        writable: true
       })
     );
   }
@@ -642,6 +762,7 @@ module.exports = (function(){
   }
 
   function reapplySorting(table, partialOptions){
+    console.log('reaply sorting')
     resetSorting(table);
     partialOptions['sortedBy'].reverse().slice(-4).forEach(sortStep => {
       if(sortStep.dir == 'desc'){
@@ -691,6 +812,8 @@ module.exports = (function(){
     constructor(){
       super();
 
+      defineSetPrototypeFunctions();
+
       this.linkOptions = [
         'pagination',
         'filter',
@@ -732,7 +855,7 @@ module.exports = (function(){
         'customChooseSortsCompareFn',
         'hiddenColumns',
         'hiddenColumnsCondition',
-      ])
+      ]);
 
       this.useDefaultOptions();
     }
@@ -753,6 +876,7 @@ module.exports = (function(){
       this.hiddenColumnsCondition = [
         (column, data) => (column.startsWith('#')),
       ];
+
       this.elements.sortArrows = {};
       this.optionalDebounceFn = undefined;
       this.activeFilterOperations = {};
@@ -842,6 +966,7 @@ module.exports = (function(){
 
     loadPartialOptions(partialOptions){
       if (this.data.length > 0){
+        console.log('partial', partialOptions)
         Object.keys(partialOptions).forEach(option => {
           if(option == 'sortedBy'){
             reapplySorting(this, partialOptions);
@@ -864,7 +989,7 @@ module.exports = (function(){
       })
       let newSerializedValue = btoa(JSON.stringify(linkOptions, (key, value) => value instanceof Function ? serializeFunction(value) : value));
       let newUrlSearchParam = replaceUrlSearchParameter(`table${this.tableId}`, newSerializedValue);
-      history.replaceState(history.state, '', newUrlSearchParam)
+      if(this.drawOptionals.rewriteurl) history.replaceState(history.state, '', newUrlSearchParam)
     }
 
     loadLinkOptions(){
@@ -882,17 +1007,13 @@ module.exports = (function(){
           return value
         }
       });
-      this.loadPartialOptions(partialOptions);
+      return partialOptions;
       // this.redrawData():
-    }
-
-    serializeOptions(){
-      return btoa(JSON.stringify(this.options, (key, value) => value instanceof Function ? serializeFunction(value) : value))
     }
 
     deserializeOptions(serializedOptions){
       if(serializedOptions){
-        return atob(JSON.parse(serializedOptions, (key, value) => {
+        return JSON.parse(atob(serializedOptions, (key, value) => {
           if (!(value instanceof Array)  && value.toString().match(funRegex)) {
             return deserializeFunction(value);
           } else {
@@ -922,12 +1043,9 @@ module.exports = (function(){
     connectedCallback(){
       if(!this.root_document.body) this.root_document.body = document.createElement('body');
       if(!this.root_document.head) this.root_document.head = document.createElement('head');
-      let attributeOptions = this.deserializeOptions(this.getAttribute('options'));
-      Object.keys(attributeOptions).forEach(option => {
-        this.options[option] = attributeOptions[option];
-      })
 
       this.tableId = this.root_document.querySelectorAll('.wgt-grid-container').length; //// TODO: check if multiple tables have consistantly different ids.
+      this.classList.add(`table-id-${this.tableId}`);      
       this.classList.add('wgt-grid-container')
       if(!this.sortedData && this.data) this.sortedData = this.data.map(value => value);
       let height = this.getAttribute('height');
@@ -935,11 +1053,28 @@ module.exports = (function(){
       let pageSize = this.getAttribute('page-size');
       if(pageSize) {
         this.pagination.pageSize = pageSize;
-        // this.options.pagination.pageSize = pageSize;
       }
-      this.loadLinkOptions();
+
+      this.loadInitialOptions();
       drawTable(this);
     }
+ 
+    loadInitialOptions(){
+      let attributeOptions = this.deserializeOptions(this.getAttribute('options'));
+      let linkOptions = this.loadLinkOptions();
+
+      ((new Set(Object.keys(attributeOptions))).union(Object.keys(linkOptions))).forEach(option => {
+        if(attributeOptions[option]){
+          this.options[option] = attributeOptions[option];
+        }
+        if(linkOptions[option] && Object.keys(linkOptions[option]).length != 0){
+          this.options[option] = linkOptions[option];
+        }
+      });
+      console.log(this.options)
+
+      this.loadPartialOptions(this.options);
+    } 
 
     /**
      * Configure a debounce function for event based table changes like sortClick and filterChange.
@@ -965,9 +1100,10 @@ module.exports = (function(){
      */
     setData(data){
       this.data = data;
+      // console.log(transformToGroupedData(data, ["BelID", "Belegdatum", "Lieferant", "Nettobetrag"]))
       this.sortedData = data.map(value => value);
       drawTable(this);
-      this.loadLinkOptions();
+      this.loadInitialOptions();
     }
 
     /**
@@ -990,7 +1126,7 @@ module.exports = (function(){
     redrawData(){
       this.header.forEach(column => {
         if (this.elements.dataCells[column]) [].forEach.call(this.elements.dataCells[column], element => element.remove());
-        if (this.elements.filterCells[column].firstChild.textContent != this.filter[column]) this.elements.filterCells[column].firstChild.textContent = this.filter[column];
+        if (this.drawOptionals.filter && this.elements.filterCells[column].firstChild.textContent != this.filter[column]) this.elements.filterCells[column].firstChild.textContent = this.filter[column];
         // this.elements.filterCells[column].firstChild.textContent = this.filter[column] ? this.filter[column] : '';
 
       }); 

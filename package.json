@@ -1,11 +1,11 @@
 {
   "name": "wc-grid-table",
-  "version": "1.2.16",
+  "version": "2.1.0",
   "description": "A table component implemented with css-grid and webcomponents.",
   "main": "dist/standalone/bundle.min.js",
   "scripts": {
-    "setup_folder": "mkdir -p dist && mkdir -p dist/example1 && mkdir -p dist/standalone && mkdir -p dist/styles",
-    "copy_public": "cp src/public/* dist && cp src/example1/* dist/example1 && cp src/standalone/* dist/standalone && cp src/styles/* dist/styles",
+    "setup_folder": "mkdir -p dist && mkdir -p dist/example1 && mkdir -p dist/standalone",
+    "copy_public": "cp src/public/* dist && cp src/example1/* dist/example1 && cp src/standalone/* dist/standalone",
     "build": "browserify -t browserify-css src/wc-grid-table.js > dist/bundle.js",
     "build_min": "browserify -p tinyify -t browserify-css src/wc-grid-table.js > dist/bundle.min.js",
     "build_standalone": "browserify -t browserify-css src/wc-grid-table.js --standalone WcGridTable > dist/standalone/bundle.js",
@@ -13,8 +13,9 @@
     "build_exmpl1": "browserify -t browserify-css src/example1/example1.js > dist/example1/bundle.js",
     "build_exmpl1_min": "browserify -p tinyify -t browserify-css src/example1/example1.js > dist/example1/bundle.min.js",
     "build_all": "npm run build && npm run build_min && npm run build_standalone && npm run build_standalone_min && npm run build_exmpl1 && npm run build_exmpl1_min && npm run copy_public",
-    "publish_patch": "npm run test && npm run build_all && git add * && git commit && npm version patch && git push && npm publish && git push --tags",
-    "test": "jest"
+    "publish_patch": "npm run build_all && git add * && git commit && npm version patch && git push && npm publish && git push --tags",
+    "test": "jest",
+    "start-example": "http-server -o /standalone dist/"
   },
   "keywords": [
     "table",
@@ -27,8 +28,8 @@
   "devDependencies": {
     "browserify": "^16.5.0",
     "browserify-css": "^0.15.0",
-    "http-server": "^0.11.1",
-    "jest": "^24.9.0",
+    "http-server": "^0.12.1",
+    "jest": "^25.1.0",
     "jest-css-modules": "^2.1.0",
     "tinyify": "^2.5.1"
   },

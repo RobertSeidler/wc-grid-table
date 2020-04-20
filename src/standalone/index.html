@@ -9,9 +9,10 @@
   <script>
     WcGridTable.defineCustomElement();
     let table = document.createElement('wc-grid-table');
-    table.toggleAttribute('rewriteurl');
-    
-    fetch('../data.json')
+    // table.toggleAttribute('norewriteurl');
+    // table.setAttribute('options', 'eyJmaWx0ZXIiOnsiTGllZmVyYW50IjoiYm9wbGEifSwic29ydGVkQnkiOlt7ImNvbCI6Ik5ldHRvYmV0cmFnIiwiZGlyIjoiZGVzYyJ9LHsiY29sIjoiQmVsUG9zSUQiLCJkaXIiOiJkZXNjIn1dfQ');
+
+    fetch('../grouped_data.json')
       .then(response => response.json())
       .then(data => table.setData(data))
 
