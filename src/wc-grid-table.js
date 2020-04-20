@@ -935,7 +935,7 @@ module.exports = (function(){
       let pageSize = this.getAttribute('page-size');
       if(pageSize) {
         this.pagination.pageSize = pageSize;
-        this.options.pagination.pageSize = pageSize;
+        // this.options.pagination.pageSize = pageSize;
       }
       this.loadLinkOptions();
       drawTable(this);
