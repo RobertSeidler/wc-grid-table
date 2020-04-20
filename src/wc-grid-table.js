@@ -250,7 +250,7 @@ module.exports = (function(){
     requestAnimationFrame(() => {
       table.header.forEach( (column, columnIndex) => {
         let col_header = table.elements.header[column];
-        col_height = col_header.offsetHeight;
+        col_height = Math.max(col_height ? col_height : 0, col_header.offsetHeight);
       })
       createStickyFilterStyle(table, col_height);
     })
