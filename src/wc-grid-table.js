@@ -27,6 +27,8 @@ let appname = 'wc-grid-table';
 const {regexFilter, textFilter, compareFilter} = require('./filter-utils.js');
 const {createPageChooser, addKeyHandlerToDocument} = require('./pagination-utils.js');
 
+var tableCounter = 0;
+
 module.exports = (function(){
   // Closure, so that only functions I want to expose are getting exposed.
 
@@ -250,7 +252,7 @@ module.exports = (function(){
     requestAnimationFrame(() => {
       table.header.forEach( (column, columnIndex) => {
         let col_header = table.elements.header[column];
-        col_height = Math.max(col_height ? col_height : 0, col_header.offsetHeight);
+        col_height = col_header.offsetHeight;
       })
       createStickyFilterStyle(table, col_height);
     })
@@ -868,7 +870,8 @@ module.exports = (function(){
 
       this.elements = {};
 
-      this.tableId = 0;
+      // this.tableId = 0;
+      this.tableId = tableCounter++;
 
       this.data = [];
       
