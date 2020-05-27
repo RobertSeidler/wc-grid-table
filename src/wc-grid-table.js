@@ -324,7 +324,7 @@ module.exports = (function(){
     btn.addEventListener('click', function(event){
       if(confirm('Sicher, dass alle angewendeten Umformungen zurückgesetzt werden sollen')){
         let url = new URL(location.href);
-        url.search = '';
+        url.search = '?' + url.search.slice(1).split('&').filter(entry => !entry.split('=')[0].startsWith('table')).join('&');
         location.href = url.href;
       }
     });

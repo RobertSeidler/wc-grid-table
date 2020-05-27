@@ -190,6 +190,7 @@
     /* position: absolute; */
     position: relative;
     width: 200px;
+    height: min-content;
     /* top: 0px; */
     /* bottom: 0px; */
     left: 0px;
@@ -214,6 +215,7 @@
   
   .column-chooser-menu-container.hidden {
     visibility: hidden;
+    height: 0px;
   }
   
   .column-chooser-item {
