@@ -24,333 +24,337 @@ let appname = 'wc-grid-table';
 //   .injectConsole('http://localhost:52005/', 'wc-grid-table', true, true, true);
 
 
-const {regexFilter, textFilter, compareFilter} = require('./filter-utils.js');
-const {createPageChooser, addKeyHandlerToDocument} = require('./pagination-utils.js');
+const { regexFilter, textFilter, compareFilter } = require('./filter-utils.js');
+const { createPageChooser, addKeyHandlerToDocument } = require('./pagination-utils.js');
 
 var tableCounter = 0;
 
-module.exports = (function(){
-  // Closure, so that only functions I want to expose are getting exposed.
+module.exports = (function() {
+            // Closure, so that only functions I want to expose are getting exposed.
 
-  function defineSetPrototypeFunctions(){
-    /**
-     * @param {Iterable} an iterable, that should be unioned with the starting Set
-     */
-    Object.defineProperty(Set.prototype, 'union', {
-      value: function(anotherSet){
-        for(element of anotherSet){
-          console.log(element)
-          this.add(element);
-        }
-        return this;
-      },
-      enumerable: false,
-      writable: true,
-    });
-  }
-
-  const testNumberRegex = /^([0-9]{1,3}(?:[\.|,]{0,1}[0-9]{3})*[\.|\,]{0,1}[0-9]*)\s{0,1}\D*$/i;
-
-  function tryTransformToNumber(testStr){
-    let matches = testNumberRegex.exec(testStr.toString());
-    let result;
-    if(matches){
-      result = Number.parseFloat(matches[1]);
-    } else {
-      result = testStr;
-    }
-    return result;
-  }
-
-  /**
-   * Compare function for comparing numbers for sorting. Additionally undefined values are 
-   * always the 'smaller' value, so that they get sorted to the bottom.
-   * Can be replaced by supplying a custom compare function to TableComponent.customCompareNumbers.
-   * 
-   * @param {number} a number to compare. 
-   * @param {number} b number to compare.
-   */
-  function compareNumbers(a, b){
-    if (a == undefined || a === '') return 1;
-    if (b == undefined || b === '') return -1;
-    return tryTransformToNumber(b) - tryTransformToNumber(a);
-  }
-  
-/**
-   * Compare function for comparing strings for sorting. Additionally undefined values are
-   * always the 'smaller' value, so that they get sorted to the bottom. 
-   * Can be replaced by supplying a custom compare function to TableComponent.customCompareText.
-   * 
-   * @param {string} a text to compare.
-   * @param {string} b text to compare.
-   */
-  function compareText(a, b){
-    let result = 0;
-    if (a == undefined || a === '') return 1;
-    if (b == undefined || b === '') return -1;
-    if (a.toString() > b.toString()) result = -1;
-    if (a.toString() < b.toString()) result = 1;
-    return result;
-  }
-  
-  /**
-   * Map different compare functions, depending on the content of this column. Default is a distinction between numbers and text.
-   * The chooseSortCompareFn as well as the compareNumbers and compareText functions can be replaced by custom ones.
-   * chooseSortCompareFn -> TableComponent.customChooseSortsCompareFn
-   * 
-   * @param {TableComponent} table the active instance of TableComponent.
-   * @param {Array<Object>} data 
-   * @param {string} column the column name (header) for which a compare function is to choose. 
-   */
-  function chooseSortsCompareFn(table, data, column){
-    // if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
-    if(data.every(row => (typeof(tryTransformToNumber(row[column])) == 'number'))){
-      return table.customCompareNumbers
-    } else {
-      return table.customCompareText
-    }
-  }
-  
-  /**
-   * Register the TableComponent to the customElementRegistry, so that it can be used as a WebComponent.
-   * 
-   * @param {class} TableComponent 
-   */
-  function defineCustomElement(){
-    customElements.define('wc-grid-table', TableComponent);
-  }
-
-  function onSortClick(table, column, event, doRedraw){
-    if(table.header.includes(column)){
-      if(table.sortedBy.length > 0){
-        if(table.sortedBy[0].col === column){
-          table.sortedBy[0].dir = table.sortedBy[0].dir === "asc" ? "desc" : "asc";
-          table.elements.sortArrows[column].innerHTML = table.sortedBy[0].dir === "asc" ? "&uarr;" : "&darr;";
-          // table.sortedData = [].concat(table.sortedData.filter(entry => entry[column] != undefined).reverse(), table.sortedData.filter(entry => entry[column] == undefined));
-          // table.redrawData();
-          // return;
-        } else {
-          table.header.filter(header_key => header_key !== column).forEach(header_key => {
-            if(table.elements.sortArrows[header_key].innerHTML !== '&#8693;') {
-              table.elements.sortArrows[header_key].arrowAlphaColor = table.elements.sortArrows[header_key].arrowAlphaColor * 0.5;
-              table.elements.sortArrows[header_key].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[header_key].arrowAlphaColor})`;
+            function defineSetPrototypeFunctions() {
+                /**
+                 * @param {Iterable} an iterable, that should be unioned with the starting Set
+                 */
+                Object.defineProperty(Set.prototype, 'union', {
+                    value: function(anotherSet) {
+                        for (element of anotherSet) {
+                            console.log(element)
+                            this.add(element);
+                        }
+                        return this;
+                    },
+                    enumerable: false,
+                    writable: true,
+                });
             }
-          });
-          table.sortedBy = [].concat([new Object({col: column, dir: "asc"})], table.sortedBy);
-        }
-        table.elements.sortArrows[column].innerHTML = table.sortedBy[0].dir === "asc" ? "&uarr;" : "&darr;";
-        table.elements.sortArrows[column].arrowAlphaColor = 1;
-        table.elements.sortArrows[column].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[column].arrowAlphaColor})`;
-      } else {
-        table.sortedBy = [].concat(table.sortedBy, [new Object({col: column, dir: "asc"})]);
-        table.elements.sortArrows[column].innerHTML = "&uarr;";
-        table.elements.sortArrows[column].arrowAlphaColor = 1;
-        table.elements.sortArrows[column].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[column].arrowAlphaColor})`;
-      }
-      table.serializeLinkOptions()
-      if(doRedraw) table.redrawData()
-    }
-  }
 
-  
-  function transformToGroupedData(initialData, groupColumns){
-    let groups = initialData.map(fullRow => {
-      let result = {};
-      groupColumns.forEach(groupColumn => {
-        result[groupColumn] = fullRow[groupColumn];
-      });
-      return result;
-    })
-      .reduce((col, cur) => (
-        !col.includes(cur) ? [].concat(col, [cur]) : col), []);
+            const testNumberRegex = /^([0-9]{1,3}(?:[\.|,]{0,1}[0-9]{3})*[\.|\,]{0,1}[0-9]*)\s{0,1}\D*$/i;
 
-    // console.log(groups);
-  }
+            function fixColumnHeader(table, col_height) {
+                table.header.forEach((column) => {
+                    let col_header = table.elements.header[column];
+                    col_height = col_header.offsetHeight;
+                    if (col_header.offsetHeight > 0)
+                        table.elements.stickyStyle.innerHTML = `
+                          .table-id-${table.tableId} > .wgt-filter_cell {
+                            top: ${col_header.offsetHeight}px;
+                          }
+                        `;
+                });
+            }
 
-  function filterChanged(table, column, event){
-    table.pagination.currentPage = 1;
-    table.filter[column] = event.srcElement.textContent;
-    table.redrawData();
-    table.serializeLinkOptions()
-  }
+            function tryTransformToNumber(testStr) {
+                let matches = testNumberRegex.exec(testStr.toString());
+                let result;
+                if (matches) {
+                    result = Number.parseFloat(matches[1]);
+                } else {
+                    result = testStr;
+                }
+                return result;
+            }
 
-  /**
-   * table.filterNegate[column] === undefined shall be equal to 'contains'.
-   * @param {*} table 
-   * @param {*} column 
-   * @param {*} event 
-   */
-  function toggleFilterNegator(table, column, event){
-    let newOperation = table.activeFilterOperations[column];
-    if(newOperation === undefined || newOperation == '') newOperation = table.filterOperations[0].name;
-    newOperation = table.filterOperations[(table.filterOperations.findIndex(element => (element.name == newOperation)) + 1) % table.filterOperations.length].name;
-    if(table.elements.filterOperations[column]) table.elements.filterOperations[column].innerHTML = table.filterOperations.find(op => op.name == newOperation).char;
-    table.activeFilterOperations[column] = newOperation;
-    table.redrawData();
-    table.serializeLinkOptions();
-  }
+            /**
+             * Compare function for comparing numbers for sorting. Additionally undefined values are 
+             * always the 'smaller' value, so that they get sorted to the bottom.
+             * Can be replaced by supplying a custom compare function to TableComponent.customCompareNumbers.
+             * 
+             * @param {number} a number to compare. 
+             * @param {number} b number to compare.
+             */
+            function compareNumbers(a, b) {
+                if (a == undefined || a === '') return 1;
+                if (b == undefined || b === '') return -1;
+                return tryTransformToNumber(b) - tryTransformToNumber(a);
+            }
 
-  function setUpSorting(element, column, table){
-    element.addEventListener('click', (event) => onSortClick(table, column, event, true))
-  }
+            /**
+             * Compare function for comparing strings for sorting. Additionally undefined values are
+             * always the 'smaller' value, so that they get sorted to the bottom. 
+             * Can be replaced by supplying a custom compare function to TableComponent.customCompareText.
+             * 
+             * @param {string} a text to compare.
+             * @param {string} b text to compare.
+             */
+            function compareText(a, b) {
+                let result = 0;
+                if (a == undefined || a === '') return 1;
+                if (b == undefined || b === '') return -1;
+                if (a.toString() > b.toString()) result = -1;
+                if (a.toString() < b.toString()) result = 1;
+                return result;
+            }
 
-  function createHeaderTooltip(table){
-    let tooltip = table.elements.tooltip = document.createElement('div');
-    tooltip.state = {
-      offsetLeft: 0
-    }
-    tooltip.classList.add('header-col-tooltip');
-    tooltip.classList.add('wgt-cell');
-    table.append(tooltip)
-  }
+            /**
+             * Map different compare functions, depending on the content of this column. Default is a distinction between numbers and text.
+             * The chooseSortCompareFn as well as the compareNumbers and compareText functions can be replaced by custom ones.
+             * chooseSortCompareFn -> TableComponent.customChooseSortsCompareFn
+             * 
+             * @param {TableComponent} table the active instance of TableComponent.
+             * @param {Array<Object>} data 
+             * @param {string} column the column name (header) for which a compare function is to choose. 
+             */
+            function chooseSortsCompareFn(table, data, column) {
+                // if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
+                if (data.every(row => (typeof(tryTransformToNumber(row[column])) == 'number'))) {
+                    return table.customCompareNumbers
+                } else {
+                    return table.customCompareText
+                }
+            }
 
-  function onHeaderMouseEnter(table, columnElement, columnName){
-    table.elements.tooltip.innerHTML = columnName;
-    table.elements.tooltip.state.offsetLeft = columnElement.offsetLeft;
-    table.elements.tooltip.style.left = `${(columnElement.offsetLeft) - table.scrollLeft}px`;
-    table.elements.tooltip.classList.add('visible');
-  }
+            /**
+             * Register the TableComponent to the customElementRegistry, so that it can be used as a WebComponent.
+             * 
+             * @param {class} TableComponent 
+             */
+            function defineCustomElement() {
+                customElements.define('wc-grid-table', TableComponent);
+            }
 
-  function onHeaderMouseLeave(table, columnElement, columnName){
-    table.elements.tooltip.classList.remove('visible');
-  }
-
-  function createHeader(table){
-    let col_height = 0;
-    createHeaderTooltip(table);
-    if(!table.elements.header) table.elements.header = {};
-    table.header.forEach( (column, columnIndex) => {
-      let col_header = document.createElement('div');
-      col_header.classList.add('wgt-header')
-      col_header.classList.add(`wgt-column_${column}`)
-      col_header.classList.add('wgt-cell');
-      let col_container = document.createElement('div');
-      col_container.classList.add('wgt-col-header-container');
-      col_container.innerHTML = column;
-      col_header.append(col_container);
-      col_header.addEventListener('mouseenter', onHeaderMouseEnter.bind(this, table, col_header, column));
-      col_header.addEventListener('mouseleave', onHeaderMouseLeave.bind(this, table, col_header, column));
-      table.append(col_header)
-      col_height = col_header.offsetHeight;
-      let sort_arrow = document.createElement('div');
-      sort_arrow.classList.add('arrow');
-      sort_arrow.innerHTML = '&#8693;';
-      sort_arrow.addEventListener('mouseenter', function (event){
-        onHeaderMouseLeave(table, col_header, column);
-        event.stopPropagation();
-      });
-      sort_arrow.addEventListener('mouseleave', onHeaderMouseEnter.bind(this, table, col_header, column));
-      table.elements.header[column] = col_header;
-      table.elements.sortArrows[column] = sort_arrow;
-      setUpSorting(sort_arrow, column, table)
-      col_header.append(sort_arrow)
-
-    });
-    table.addEventListener('scroll', (event) => {
-      table.elements.tooltip.style.left = `${(table.elements.tooltip.state.offsetLeft) - table.scrollLeft}px`;
-    });
-    requestAnimationFrame(() => {
-      table.header.forEach( (column, columnIndex) => {
-        let col_header = table.elements.header[column];
-        col_height = col_header.offsetHeight;
-        setInterval((() => {
-          if (col_header.offsetHeight > 0)
-            table.elements.stickyStyle.innerHTML = `
-              .table-id-${table.tableId} > .wgt-filter_cell {
-                top: ${col_header.offsetHeight}px;
-              }
-            `;
-        }), 1000)
-      })
-      createStickyFilterStyle(table, col_height);
-    });
+            function onSortClick(table, column, event, doRedraw) {
+                if (table.header.includes(column)) {
+                    if (table.sortedBy.length > 0) {
+                        if (table.sortedBy[0].col === column) {
+                            table.sortedBy[0].dir = table.sortedBy[0].dir === "asc" ? "desc" : "asc";
+                            table.elements.sortArrows[column].innerHTML = table.sortedBy[0].dir === "asc" ? "&uarr;" : "&darr;";
+                            // table.sortedData = [].concat(table.sortedData.filter(entry => entry[column] != undefined).reverse(), table.sortedData.filter(entry => entry[column] == undefined));
+                            // table.redrawData();
+                            // return;
+                        } else {
+                            table.header.filter(header_key => header_key !== column).forEach(header_key => {
+                                if (table.elements.sortArrows[header_key].innerHTML !== '&#8693;') {
+                                    table.elements.sortArrows[header_key].arrowAlphaColor = table.elements.sortArrows[header_key].arrowAlphaColor * 0.5;
+                                    table.elements.sortArrows[header_key].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[header_key].arrowAlphaColor})`;
+                                }
+                            });
+                            table.sortedBy = [].concat([new Object({ col: column, dir: "asc" })], table.sortedBy);
+                        }
+                        table.elements.sortArrows[column].innerHTML = table.sortedBy[0].dir === "asc" ? "&uarr;" : "&darr;";
+                        table.elements.sortArrows[column].arrowAlphaColor = 1;
+                        table.elements.sortArrows[column].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[column].arrowAlphaColor})`;
+                    } else {
+                        table.sortedBy = [].concat(table.sortedBy, [new Object({ col: column, dir: "asc" })]);
+                        table.elements.sortArrows[column].innerHTML = "&uarr;";
+                        table.elements.sortArrows[column].arrowAlphaColor = 1;
+                        table.elements.sortArrows[column].style.color = `rgb(0, 0, 0, ${table.elements.sortArrows[column].arrowAlphaColor})`;
+                    }
+                    table.serializeLinkOptions()
+                    if (doRedraw) table.redrawData()
+                }
+            }
 
 
-    // createStickyFilterStyle(table, col_height);
-  }
+            function transformToGroupedData(initialData, groupColumns) {
+                let groups = initialData.map(fullRow => {
+                        let result = {};
+                        groupColumns.forEach(groupColumn => {
+                            result[groupColumn] = fullRow[groupColumn];
+                        });
+                        return result;
+                    })
+                    .reduce((col, cur) => (!col.includes(cur) ? [].concat(col, [cur]) : col), []);
 
-  function createStickyFilterStyle(table, col_height){
-    let tmp_style = table.elements.stickyStyle;
-    if(!tmp_style){
-      table.elements.stickyStyle = tmp_style = document.createElement('style');
-      tmp_style.type = "text/css";
-      tmp_style.classList.add('sticky_filter_offset');
-    }
-    tmp_style.innerHTML = `
+                // console.log(groups);
+            }
+
+            function filterChanged(table, column, event) {
+                table.pagination.currentPage = 1;
+                table.filter[column] = event.srcElement.textContent;
+                table.redrawData();
+                table.serializeLinkOptions()
+            }
+
+            /**
+             * table.filterNegate[column] === undefined shall be equal to 'contains'.
+             * @param {*} table 
+             * @param {*} column 
+             * @param {*} event 
+             */
+            function toggleFilterNegator(table, column, event) {
+                let newOperation = table.activeFilterOperations[column];
+                if (newOperation === undefined || newOperation == '') newOperation = table.filterOperations[0].name;
+                newOperation = table.filterOperations[(table.filterOperations.findIndex(element => (element.name == newOperation)) + 1) % table.filterOperations.length].name;
+                if (table.elements.filterOperations[column]) table.elements.filterOperations[column].innerHTML = table.filterOperations.find(op => op.name == newOperation).char;
+                table.activeFilterOperations[column] = newOperation;
+                table.redrawData();
+                table.serializeLinkOptions();
+            }
+
+            function setUpSorting(element, column, table) {
+                element.addEventListener('click', (event) => onSortClick(table, column, event, true))
+            }
+
+            function createHeaderTooltip(table) {
+                let tooltip = table.elements.tooltip = document.createElement('div');
+                tooltip.state = {
+                    offsetLeft: 0
+                }
+                tooltip.classList.add('header-col-tooltip');
+                tooltip.classList.add('wgt-cell');
+                table.append(tooltip)
+            }
+
+            function onHeaderMouseEnter(table, columnElement, columnName) {
+                table.elements.tooltip.innerHTML = columnName;
+                table.elements.tooltip.state.offsetLeft = columnElement.offsetLeft;
+                table.elements.tooltip.style.left = `${(columnElement.offsetLeft) - table.scrollLeft}px`;
+                table.elements.tooltip.classList.add('visible');
+            }
+
+            function onHeaderMouseLeave(table, columnElement, columnName) {
+                table.elements.tooltip.classList.remove('visible');
+            }
+
+            function createHeader(table) {
+                let col_height = 0;
+                createHeaderTooltip(table);
+                if (!table.elements.header) table.elements.header = {};
+                table.header.forEach((column, columnIndex) => {
+                    let col_header = document.createElement('div');
+                    col_header.classList.add('wgt-header')
+                    col_header.classList.add(`wgt-column_${column.split(' ').join('_')}`)
+                    col_header.classList.add('wgt-cell');
+                    let col_container = document.createElement('div');
+                    col_container.classList.add('wgt-col-header-container');
+                    col_container.innerHTML = column;
+                    col_header.append(col_container);
+                    col_header.addEventListener('mouseenter', onHeaderMouseEnter.bind(this, table, col_header, column));
+                    col_header.addEventListener('mouseleave', onHeaderMouseLeave.bind(this, table, col_header, column));
+                    table.append(col_header)
+                    col_height = col_header.offsetHeight;
+                    let sort_arrow = document.createElement('div');
+                    sort_arrow.classList.add('arrow');
+                    sort_arrow.innerHTML = '&#8693;';
+                    sort_arrow.addEventListener('mouseenter', function(event) {
+                        onHeaderMouseLeave(table, col_header, column);
+                        event.stopPropagation();
+                    });
+                    sort_arrow.addEventListener('mouseleave', onHeaderMouseEnter.bind(this, table, col_header, column));
+                    table.elements.header[column] = col_header;
+                    table.elements.sortArrows[column] = sort_arrow;
+                    setUpSorting(sort_arrow, column, table)
+                    col_header.append(sort_arrow)
+
+                });
+                table.addEventListener('scroll', (event) => {
+                    table.elements.tooltip.style.left = `${(table.elements.tooltip.state.offsetLeft) - table.scrollLeft}px`;
+                });
+                window.addEventListener('message', function(event) {
+                    if (event.data) {
+                        let dataObj = JSON.parse(event.data); // dataObj = {type: 'fix-columns', element: undefined, data: undefined}
+                        if (dataObj.type === 'fix-columns') fixColumnHeader(table, col_height);
+                    }
+                });
+                requestAnimationFrame(() => {
+                    setTimeout(fixColumnHeader.bind(this, table, col_height), 1000);
+                    createStickyFilterStyle(table, col_height);
+                }); // createStickyFilterStyle(table, col_height);
+            }
+
+            function createStickyFilterStyle(table, col_height) {
+                let tmp_style = table.elements.stickyStyle;
+                if (!tmp_style) {
+                    table.elements.stickyStyle = tmp_style = document.createElement('style');
+                    tmp_style.type = "text/css";
+                    tmp_style.classList.add('sticky_filter_offset');
+                }
+                tmp_style.innerHTML = `
       .table-id-${table.tableId} > .wgt-filter_cell {
         top: ${col_height}px;
       }
-    `;    
-    table.root_document.head.append(tmp_style);
-  }
+    `;
+                table.root_document.head.append(tmp_style);
+            }
 
-  function createFilter(table, header, filter){
-    table.elements.filterCells = {};
-    table.elements.filterOperations = {};
-    header.forEach(column => {
-      let filter_container = document.createElement('div');
-      // let filter_input = document.createElement('input');
-      // filter_input.type = 'text';
-      // filter_input.classList.add('wgt-filter_input');
-      // filter_input.value = filter[column] ? filter[column] : '';
-      // filter_container.addEventListener('input', event => filterChanged.bind(null, table, column)(event))
-      filter_container.classList.add('wgt-filter_cell', `wgt-filter_cell_${column}`, 'wgt-filter_input');
-      // filter_container.contentEditable = 'true';
+            function createFilter(table, header, filter) {
+                table.elements.filterCells = {};
+                table.elements.filterOperations = {};
+                header.forEach(column => {
+                    let filter_container = document.createElement('div');
+                    // let filter_input = document.createElement('input');
+                    // filter_input.type = 'text';
+                    // filter_input.classList.add('wgt-filter_input');
+                    // filter_input.value = filter[column] ? filter[column] : '';
+                    // filter_container.addEventListener('input', event => filterChanged.bind(null, table, column)(event))
+                    filter_container.classList.add('wgt-filter_cell', `wgt-filter_cell_${column.split(' ').join('_')}`, 'wgt-filter_input');
+                    // filter_container.contentEditable = 'true';
 
-      let filter_input = document.createElement('div')
-      filter_input.addEventListener('input', event => filterChanged.bind(null, table, column)(event));
-      filter_input.classList.add('filter_input');
-      filter_input.contentEditable = 'true';
-      let filter_negate = document.createElement('div');
-      table.elements.filterOperations[column] = filter_negate;
-      filter_negate.innerHTML = '&sube;';
-      filter_negate.classList.add('filter_negator');
-      
-      filter_negate.addEventListener('click', event => toggleFilterNegator.bind(null, table, column)(event))
-      // filter_negate.style.position = 'absolute';
-      // filter_negate.style.
-      // filter_container.append(filter_input);
-      filter_container.append(filter_input);
-      filter_container.append(filter_negate);
-      table.elements.filterCells[column] = filter_container;
-      table.append(filter_container);
-    })
-  }
+                    let filter_input = document.createElement('div')
+                    filter_input.addEventListener('input', event => filterChanged.bind(null, table, column)(event));
+                    filter_input.classList.add('filter_input');
+                    filter_input.contentEditable = 'true';
+                    let filter_negate = document.createElement('div');
+                    table.elements.filterOperations[column] = filter_negate;
+                    filter_negate.innerHTML = '&sube;';
+                    filter_negate.classList.add('filter_negator');
 
-  function createResetLinkButton(table){
-    let btn = document.createElement('div');
-    btn.classList.add('footer-button', 'wgt-footer-cell', 'wgt-cell');
-    btn.innerHTML = 'reset';
-    btn.addEventListener('click', function(event){
-      if(confirm('Sicher, dass alle angewendeten Umformungen zurückgesetzt werden sollen')){
-        let url = new URL(location.href);
-        url.search = '?' + url.search.slice(1).split('&').filter(entry => !entry.split('=')[0].startsWith('table')).join('&');
-        location.href = url.href;
-      }
-    });
-    return btn;
-  }
+                    filter_negate.addEventListener('click', event => toggleFilterNegator.bind(null, table, column)(event))
+                        // filter_negate.style.position = 'absolute';
+                        // filter_negate.style.
+                        // filter_container.append(filter_input);
+                    filter_container.append(filter_input);
+                    filter_container.append(filter_negate);
+                    table.elements.filterCells[column] = filter_container;
+                    table.append(filter_container);
+                })
+            }
 
-  function createFooter(table, data, pageChooser){
-    bindColumnChooserHandler(table); 
-    let footer = document.createElement('div');
-    footer.classList.add('wgt-footer')
-    footer.style.gridColumn = `1 / ${table.header.length + 1}`
+            function createResetLinkButton(table) {
+                let btn = document.createElement('div');
+                btn.classList.add('footer-button', 'wgt-footer-cell', 'wgt-cell');
+                btn.innerHTML = 'reset';
+                btn.addEventListener('click', function(event) {
+                    if (confirm('Sicher, dass alle angewendeten Umformungen zurückgesetzt werden sollen')) {
+                        let url = new URL(location.href);
+                        url.search = '?' + url.search.slice(1).split('&').filter(entry => !entry.split('=')[0].startsWith('table')).join('&');
+                        location.href = url.href;
+                    }
+                });
+                return btn;
+            }
 
-    if(!table.elements.columnChooserMenuContainer){
-      table.elements.columnChooserMenuContainer = createColumnChooserMenuContainer(table, table.headerAll);
-      table.parentElement.insertBefore(table.elements.columnChooserMenuContainer, table.nextSibling);
-    }
-    
-    let total_rows = document.createElement('div');
-    total_rows.innerHTML = `Total: ${table.data.length}`;
-    total_rows.classList.add('wgt-footer_cell', 'wgt-cell')
-    footer.append(total_rows)
-    table.elements.total_rows = total_rows;
+            function createFooter(table, data, pageChooser) {
+                bindColumnChooserHandler(table);
+                let footer = document.createElement('div');
+                footer.classList.add('wgt-footer')
+                footer.style.gridColumn = `1 / ${table.header.length + 1}`
 
-    if(table.data.length !== data.length){
-      let filtered_row_count = document.createElement('div');
-      filtered_row_count.innerHTML = `Filtered: ${data.length}${table.pagination.active ? ` / ${table.pagination.filteredDataCount}` : ''}`;
+                if (!table.elements.columnChooserMenuContainer) {
+                    table.elements.columnChooserMenuContainer = createColumnChooserMenuContainer(table, table.headerAll);
+                    table.parentElement.insertBefore(table.elements.columnChooserMenuContainer, table.nextSibling);
+                }
+
+                let total_rows = document.createElement('div');
+                total_rows.innerHTML = `Total: ${table.data.length}`;
+                total_rows.classList.add('wgt-footer_cell', 'wgt-cell')
+                footer.append(total_rows)
+                table.elements.total_rows = total_rows;
+
+                if (table.data.length !== data.length) {
+                    let filtered_row_count = document.createElement('div');
+                    filtered_row_count.innerHTML = `Filtered: ${data.length}${table.pagination.active ? ` / ${table.pagination.filteredDataCount}` : ''}`;
       filtered_row_count.classList.add('wgt-footer_cell', 'wgt-cell')
       footer.append(filtered_row_count)
       table.elements.filtered_row_count = filtered_row_count;
@@ -467,7 +471,7 @@ module.exports = (function(){
     data.forEach((row, rowIndex) => {
       table.header.forEach( (column, columnIndex) => {
         let cell = document.createElement('div');
-        cell.classList.add('wgt-cell', 'wgt-data-cell', `wgt-column_${column}`, `wgt-row_${rowIndex}`, `wgt-zebra_${rowIndex % 2}`)
+        cell.classList.add('wgt-cell', 'wgt-data-cell', `wgt-column_${column.split(' ').join('_')}`, `wgt-row_${rowIndex}`, `wgt-zebra_${rowIndex % 2}`)
         // cell.classList.add()
         // cell.classList.add()
         cell.innerHTML = row[column] != undefined ? row[column] : '';
@@ -1166,4 +1170,3 @@ module.exports = (function(){
 
   return {regexFilter, textFilter, compareNumbers, compareText, chooseSortsCompareFn, defineCustomElement, TableComponent};
 })()
-
