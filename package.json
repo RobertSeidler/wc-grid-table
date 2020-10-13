@@ -36,7 +36,5 @@
   "optionalDependencies": {
     "lodash.debounce": "^4.0.8"
   },
-  "dependencies": {
-    "npm": "^6.14.8"
-  }
+  "dependencies": {}
 }
