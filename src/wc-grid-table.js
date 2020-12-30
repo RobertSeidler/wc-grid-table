@@ -2,9 +2,6 @@
 //? Top -> Down - css: { writing-mode: sideways-rl, text-orientation : sideways } or
 //? Bottom -> Up - css: { writing-mode: sideways-lr, text-orientation : sideways }
 
-//! TODO: try to add Event listener for visibilitychange, to fix filter column sticky top value for WIKI Tab change;
-//! should be implemented in prot-table-v3
-
 
 /**
  * Project: wc-grid-table
@@ -475,6 +472,29 @@ module.exports = (function() {
         // cell.classList.add()
         // cell.classList.add()
         cell.innerHTML = row[column] != undefined ? row[column] : '';
+        if(column === '#include') {
+          cell.setAttribute('contentEditable', 'true');
+          let tempRowActive = row;
+          delete tempRowActive['#include'];
+          console.log(table.tickedRows);
+          console.log(JSON.stringify(tempRowActive));
+          console.log(table.tickedRows.includes(JSON.stringify(tempRowActive)));
+          cell.innerText = table.tickedRows.includes(JSON.stringify(tempRowActive)) ? 'x' : '';
+          cell.addEventListener('input', (event) => {       
+            console.log('input changed in row ' + rowIndex);     
+            console.log(event.target.innerText);
+            let tempRow = row;
+            delete tempRow['#include'];
+            if(event.target.innerText){
+              console.log('added row');
+              table.tickedRows.push( JSON.stringify(tempRow));
+            } else {
+              console.log('removed row');
+              table.tickedRows = table.tickedRows.filter(value => (value !== JSON.stringify(tempRow)));
+            }
+            table.serializeLinkOptions();
+          });
+        }
         if(!table.elements.dataCells[column]) table.elements.dataCells[column] = [];
         table.elements.dataCells[column].push(cell);
         table.append(cell)
@@ -635,6 +655,12 @@ module.exports = (function() {
   function drawTable(table){
     table.elements.sortArrows = {};
 
+    // table.data = table.data.map(entry => {
+    //   let tempRow = entry;
+    //   delete tempRow['#include'];
+    //   return {'#include': table.options.tickedRows.includes(JSON.stringify(tempRow)) ? 'x' : '', ...tempRow};
+    // });
+
     table.drawOptionals = {
       header: !table.hasAttribute('noheader'),
       filter: !table.hasAttribute('nofilter'), //! TODO fix Broken nofilter
@@ -648,7 +674,7 @@ module.exports = (function() {
     if(!table.sortedData) table.sortedData = table.data.map(value => value);
 
     if(!table.headerAll && table.data.length > 0){
-      table.headerAll = generateHeader(table.data);
+      table.headerAll = ['#include'].concat(generateHeader(table.data));
       
       table.hiddenColumns = table.hiddenColumns.concat(table.headerAll.filter(column =>
         table.hiddenColumnsCondition
@@ -708,6 +734,7 @@ module.exports = (function() {
     let filteredData = applyFilter(table, formattedData, table.header, table.filter, table.filterOptions);
     table.pagination.filteredDataCount = filteredData.length;
     let pageinatedData = applyPagination(table, filteredData);
+    // pageinatedData = pageinatedData.map(entry => ({'#include': table.tickedRows.includes(JSON.stringify(entry)) ? 'x' : '', ...entry}))
     table.style.gridTemplateRows = `${
       table.drawOptionals.header ? 'max-content' : ''} ${
         table.drawOptionals.filter ? 'max-content' : ''} repeat(${pageinatedData.length}, max-content) ${
@@ -835,6 +862,7 @@ module.exports = (function() {
         'sortedBy',
         'activeFilterOperations',
         'hiddenColumns',
+        'tickedRows',
       ]
 
       defineHiddenProperties(this, [
@@ -870,6 +898,7 @@ module.exports = (function() {
         'customChooseSortsCompareFn',
         'hiddenColumns',
         'hiddenColumnsCondition',
+        'tickedRows',
       ]);
 
       this.useDefaultOptions();
@@ -977,20 +1006,23 @@ module.exports = (function() {
       this.customCompareText = compareText;
       this.customChooseSortsCompareFn = chooseSortsCompareFn;
       
-      this.drawOptionals = {}
+      this.drawOptionals = {};
+
+      this.tickedRows = [];
     }
 
     loadPartialOptions(partialOptions){
       if (this.data.length > 0){
         console.log('partial', partialOptions)
-        Object.keys(partialOptions).forEach(option => {
+        Object.keys(partialOptions).sort((a, b) => (a == 'hiddenColumns') ? 1 : -1).forEach(option => {
           if(option == 'sortedBy'){
             reapplySorting(this, partialOptions);
           } else if (option == 'hiddenColumns') {
             this[option] = partialOptions[option];
-            this.redrawTable()
+            this.redrawTable();
           } else {
             this[option] = partialOptions[option];
+            console.log(option, this[option]);
           }
         });
         resetFilterOperations(this)
@@ -1050,6 +1082,7 @@ module.exports = (function() {
         }
       });
       // this.sortedData = applySorting(this);
+      this.tickedRows = this.options.tickedRows;
       this.redrawData();
     }
 
@@ -1115,6 +1148,7 @@ module.exports = (function() {
      * @param {Array<Object>} data 
      */
     setData(data){
+      
       this.data = data;
       // console.log(transformToGroupedData(data, ["BelID", "Belegdatum", "Lieferant", "Nettobetrag"]))
       this.sortedData = data.map(value => value);
