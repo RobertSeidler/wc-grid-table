@@ -36,7 +36,6 @@ module.exports = (function() {
                 Object.defineProperty(Set.prototype, 'union', {
                     value: function(anotherSet) {
                         for (let element of anotherSet) {
-                            console.log(element)
                             this.add(element);
                         }
                         return this;
@@ -476,20 +475,20 @@ module.exports = (function() {
           cell.setAttribute('contentEditable', 'true');
           let tempRowActive = row;
           delete tempRowActive['#include'];
-          console.log(table.tickedRows);
-          console.log(JSON.stringify(tempRowActive));
-          console.log(table.tickedRows.includes(JSON.stringify(tempRowActive)));
+          // console.log(table.tickedRows);
+          // console.log(JSON.stringify(tempRowActive));
+          // console.log(table.tickedRows.includes(JSON.stringify(tempRowActive)));
           cell.innerText = table.tickedRows.includes(JSON.stringify(tempRowActive)) ? 'x' : '';
           cell.addEventListener('input', (event) => {       
-            console.log('input changed in row ' + rowIndex);     
-            console.log(event.target.innerText);
+            // console.log('input changed in row ' + rowIndex);     
+            // console.log(event.target.innerText);
             let tempRow = row;
             delete tempRow['#include'];
             if(event.target.innerText){
-              console.log('added row');
+              // console.log('added row');
               table.tickedRows.push( JSON.stringify(tempRow));
             } else {
-              console.log('removed row');
+              // console.log('removed row');
               table.tickedRows = table.tickedRows.filter(value => (value !== JSON.stringify(tempRow)));
             }
             table.serializeLinkOptions();
@@ -1027,7 +1026,7 @@ module.exports = (function() {
             this.redrawTable();
           } else {
             this[option] = partialOptions[option];
-            console.log(option, this[option]);
+            // console.log(option, this[option]);
           }
         });
         resetFilterOperations(this)
@@ -1125,7 +1124,7 @@ module.exports = (function() {
           this.options[option] = linkOptions[option];
         }
       });
-      console.log(this.options)
+      // console.log(this.options)
 
       this.loadPartialOptions(this.options);
     } 
@@ -1158,7 +1157,6 @@ module.exports = (function() {
         let tempRow = entry;
         delete tempRow['#include'];
         let result = {'#include': this.tickedRows.includes(JSON.stringify(tempRow)) ? 'x' : '', ...tempRow};
-        console.log('include', result);
         return result;
       });
       // console.log(transformToGroupedData(data, ["BelID", "Belegdatum", "Lieferant", "Nettobetrag"]))
