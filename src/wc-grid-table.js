@@ -1157,7 +1157,7 @@ module.exports = (function() {
       this.data = data.map(entry => {
         let tempRow = entry;
         delete tempRow['#include'];
-        let result = {'#include': table.tickedRows.includes(JSON.stringify(tempRow)) ? 'x' : '', ...tempRow};
+        let result = {'#include': this.tickedRows.includes(JSON.stringify(tempRow)) ? 'x' : '', ...tempRow};
         console.log('include', result);
         return result;
       });
