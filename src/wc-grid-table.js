@@ -35,7 +35,7 @@ module.exports = (function() {
                  */
                 Object.defineProperty(Set.prototype, 'union', {
                     value: function(anotherSet) {
-                        for (element of anotherSet) {
+                        for (let element of anotherSet) {
                             console.log(element)
                             this.add(element);
                         }
@@ -660,6 +660,7 @@ module.exports = (function() {
     //   delete tempRow['#include'];
     //   return {'#include': table.options.tickedRows.includes(JSON.stringify(tempRow)) ? 'x' : '', ...tempRow};
     // });
+    
 
     table.drawOptionals = {
       header: !table.hasAttribute('noheader'),
@@ -674,7 +675,10 @@ module.exports = (function() {
     if(!table.sortedData) table.sortedData = table.data.map(value => value);
 
     if(!table.headerAll && table.data.length > 0){
-      table.headerAll = ['#include'].concat(generateHeader(table.data));
+      let genHeader = generateHeader(table.data);
+      if(!genHeader.includes('#include')) table.headerAll = ['#include'].concat(genHeader);
+      else table.headerAll = genHeader;
+
       
       table.hiddenColumns = table.hiddenColumns.concat(table.headerAll.filter(column =>
         table.hiddenColumnsCondition
@@ -712,6 +716,7 @@ module.exports = (function() {
     }
 
     if (table.data.length > 0){
+      // table.data = table.data;
       table.displayedData = drawData(table);
 
       //? Log, that is send to Tracker Server:
@@ -1149,9 +1154,15 @@ module.exports = (function() {
      */
     setData(data){
       
-      this.data = data;
+      this.data = data.map(entry => {
+        let tempRow = entry;
+        delete tempRow['#include'];
+        let result = {'#include': table.tickedRows.includes(JSON.stringify(tempRow)) ? 'x' : '', ...tempRow};
+        console.log('include', result);
+        return result;
+      });
       // console.log(transformToGroupedData(data, ["BelID", "Belegdatum", "Lieferant", "Nettobetrag"]))
-      this.sortedData = data.map(value => value);
+      this.sortedData = this.data.map(value => value);
       drawTable(this);
       this.loadInitialOptions();
     }
