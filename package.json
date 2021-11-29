@@ -28,13 +28,15 @@
   "devDependencies": {
     "browserify": "^16.5.2",
     "browserify-css": "^0.15.0",
-    "http-server": "^0.12.3",
-    "jest": "^25.5.4",
+    "http-server": "^14.0.0",
+    "jest": "^27.3.1",
     "jest-css-modules": "^2.1.0",
     "tinyify": "^2.5.2"
   },
   "optionalDependencies": {
     "lodash.debounce": "^4.0.8"
   },
-  "dependencies": {}
+  "dependencies": {
+    "murmurhash-js": "^1.0.0"
+  }
 }

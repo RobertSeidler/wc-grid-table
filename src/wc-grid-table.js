@@ -23,6 +23,7 @@ let appname = 'wc-grid-table';
 
 const { regexFilter, textFilter, compareFilter } = require('./filter-utils.js');
 const { createPageChooser, addKeyHandlerToDocument } = require('./pagination-utils.js');
+const murmur = require("murmurhash-js");
 
 var tableCounter = 0;
 
@@ -60,7 +61,16 @@ module.exports = (function() {
                 });
             }
 
+            /**
+             * Tests if a value is a number, by matching against a Regex. 
+             * On success the the parsed number is returned. 
+             * On undefined an empty String is returned.
+             * Otherwise the testStr is returned unparsed. 
+             * @param {String} testStr 
+             * @returns {String | Number} 
+             */
             function tryTransformToNumber(testStr) {
+                if (testStr == undefined) return "";
                 let matches = testNumberRegex.exec(testStr.toString());
                 let result;
                 if (matches) {
@@ -110,10 +120,11 @@ module.exports = (function() {
              * @param {TableComponent} table the active instance of TableComponent.
              * @param {Array<Object>} data 
              * @param {string} column the column name (header) for which a compare function is to choose. 
+             * @returns {(a: string, b: string) => number | (a: number, b: number) => number} the compare function to be used
              */
             function chooseSortsCompareFn(table, data, column) {
                 // if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
-                if (data.every(row => (typeof(tryTransformToNumber(row[column])) == 'number'))) {
+                if (data.every(row => (typeof(tryTransformToNumber(row[column])) == 'number' || row[column] == undefined))) {
                     return table.customCompareNumbers
                 } else {
                     return table.customCompareText
@@ -391,7 +402,7 @@ module.exports = (function() {
     let checkBox = document.createElement('input');
     checkBox.setAttribute('type', 'checkbox');
     checkBox.setAttribute('name', column + '_checkbox');
-    if(!table.hiddenColumns.includes(column)){
+    if(!table.hiddenColumns.includes(column) || table.visibleColumns.includes(column)){
       checkBox.toggleAttribute('checked');
     }
     checkBox.classList.add('column-chooser');
@@ -455,8 +466,10 @@ module.exports = (function() {
   function onColumnChooserChangeColumnHandler(table, column, event){
     if(event.srcElement.checked){
       table.hiddenColumns = table.hiddenColumns.filter(entry => entry != column);
+      table.visibleColumns.push(column);
     } else {
       table.hiddenColumns.push(column);
+      table.visibleColumns = table.visibleColumns.filter(entry => entry !== column);
     }
     table.serializeLinkOptions();
     table.redrawTable();
@@ -473,7 +486,7 @@ module.exports = (function() {
         cell.innerHTML = row[column] != undefined ? row[column] : '';
         if(column === '#include') {
           cell.setAttribute('contentEditable', 'true');
-          let tempRowActive = row;
+          let tempRowActive = {...row};
           delete tempRowActive['#include'];
           // console.log(table.tickedRows);
           // console.log(JSON.stringify(tempRowActive));
@@ -482,7 +495,7 @@ module.exports = (function() {
           cell.addEventListener('input', (event) => {       
             // console.log('input changed in row ' + rowIndex);     
             // console.log(event.target.innerText);
-            let tempRow = row;
+            let tempRow = {...row};
             delete tempRow['#include'];
             if(event.target.innerText){
               // console.log('added row');
@@ -583,7 +596,12 @@ module.exports = (function() {
     });    
   }
 
-  function applySorting(table, column){
+  /**
+   * Sorts the data, be the spcified sorting (table.sortedBy).
+   * @param {TableComponent} table reference to TableComponent
+   * @returns {Object[]} sorted data
+   */
+  function applySorting(table){
     // if(column) {
     //   return table.sortedData.sort((a, b) => {
     //     return table.customChooseSortsCompareFn(table, table.sortedData, column)(a[column], b[column])
@@ -619,17 +637,27 @@ module.exports = (function() {
 
   function applyFormatter(data, header, formatter, options){
     if(options.active){
+      // console.log(header);
       return data.map((row, rowNr, dataReadOnly) => {
-        let formattedRow = {}; 
+        let formattedRow = row; 
+        // console.log(header);
         header.forEach(column => {
+          if(column === '#include' && rowNr === 0){
+            console.log('include 0', row, row[column], formatter[column]);
+          }
+
           if(formatter[column]){
             formattedRow[column] = formatter[column].reduce((col, cur) => cur(col, rowNr, dataReadOnly), row[column])//.toString();
           } else {
             formattedRow[column] = row[column]
           }
+
+          if(column === '#include' && rowNr === 0){
+            console.log('include 0', formattedRow);
+          }
         })
         return formattedRow;
-      }) 
+      });
     } else {
       return data;
     }
@@ -675,8 +703,9 @@ module.exports = (function() {
 
     if(!table.headerAll && table.data.length > 0){
       let genHeader = generateHeader(table.data);
-      if(!genHeader.includes('#include')) table.headerAll = ['#include'].concat(genHeader);
-      else table.headerAll = genHeader;
+      console.log('genheader', genHeader);
+      // if(!genHeader.includes('#include')) table.headerAll = ['#include'].concat(genHeader);
+      table.headerAll = genHeader;
 
       
       table.hiddenColumns = table.hiddenColumns.concat(table.headerAll.filter(column =>
@@ -690,7 +719,7 @@ module.exports = (function() {
 
     if(table.headerAll && table.elements.columnChooserCheckbox) {
       for(let column of table.headerAll){
-        if(table.hiddenColumns.includes(column)){
+        if(table.hiddenColumns.includes(column) && !table.visibleColumns.includes(column)){
           table.elements.columnChooserCheckbox[column].checked = false;
         } else {
           table.elements.columnChooserCheckbox[column].checked = true;
@@ -698,10 +727,12 @@ module.exports = (function() {
       }
     }
 
+    console.log('hidden columns', table.hiddenColumns);
+
     if(table.headerAll){
       table.header = 
         table.headerAll.filter(column => 
-          !table.hiddenColumns.includes(column)
+          !table.hiddenColumns.includes(column) || table.visibleColumns.includes(column)
         )
       table.style.gridTemplateColumns = `repeat(${table.header.length}, max-content)`;
     }
@@ -734,10 +765,15 @@ module.exports = (function() {
   function drawData(table){
     table.sortedData = applySorting(table);
     applyConditionalColumnStyling(table, table.sortedData, table.header, table.conditionalColumnStyle, table.conditionalStyleOptions);
+    console.log('sorted data', table.sortedData);
+    console.log('header', table.header);
     let formattedData = applyFormatter(table.sortedData, table.header, table.formatter, table.formatterOptions);
+    console.log('formatted data', formattedData);
     let filteredData = applyFilter(table, formattedData, table.header, table.filter, table.filterOptions);
+    console.log('filtered data', filteredData);
     table.pagination.filteredDataCount = filteredData.length;
     let pageinatedData = applyPagination(table, filteredData);
+    console.log('paginated data', pageinatedData);
     // pageinatedData = pageinatedData.map(entry => ({'#include': table.tickedRows.includes(JSON.stringify(entry)) ? 'x' : '', ...entry}))
     table.style.gridTemplateRows = `${
       table.drawOptionals.header ? 'max-content' : ''} ${
@@ -866,7 +902,8 @@ module.exports = (function() {
         'sortedBy',
         'activeFilterOperations',
         'hiddenColumns',
-        'tickedRows',
+        'visibleColumns',
+        // 'tickedRows',
       ]
 
       defineHiddenProperties(this, [
@@ -902,6 +939,7 @@ module.exports = (function() {
         'customChooseSortsCompareFn',
         'hiddenColumns',
         'hiddenColumnsCondition',
+        'visibleColumns',
         'tickedRows',
       ]);
 
@@ -922,6 +960,7 @@ module.exports = (function() {
       this.data = [];
       
       this.hiddenColumns = []; // ['Einzelpreis'];
+      this.visibleColumns = [];
       this.hiddenColumnsCondition = [
         (column, data) => (column.startsWith('#')),
       ];
@@ -1020,7 +1059,7 @@ module.exports = (function() {
         console.log('partial', partialOptions)
         Object.keys(partialOptions).sort((a, b) => (a == 'hiddenColumns') ? 1 : -1).forEach(option => {
           if(option == 'sortedBy'){
-            reapplySorting(this, partialOptions);
+            reapplySorting(this, partialOptionsf);
           } else if (option == 'hiddenColumns') {
             this[option] = partialOptions[option];
             this.redrawTable();
@@ -1152,13 +1191,19 @@ module.exports = (function() {
      * @param {Array<Object>} data 
      */
     setData(data){
-      
-      this.data = data.map(entry => {
+      let dataWithInclude = data.map(entry => {
         let tempRow = entry;
-        delete tempRow['#include'];
-        let result = {'#include': this.tickedRows.includes(JSON.stringify(tempRow)) ? 'x' : '', ...tempRow};
+        // delete tempRow['#include'];
+        // tempRow['#include'] = 'x';
+        let result = {'#include': 'x'};
+        Object.keys(tempRow).forEach(key => {
+          result[key] = tempRow[key]; 
+        })
+        // let result = {'#include': 'x', ...tempRow};
         return result;
       });
+      console.log('with Include', dataWithInclude);
+      this.data = dataWithInclude;
       // console.log(transformToGroupedData(data, ["BelID", "Belegdatum", "Lieferant", "Nettobetrag"]))
       this.sortedData = this.data.map(value => value);
       drawTable(this);
