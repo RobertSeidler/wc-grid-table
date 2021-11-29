@@ -46,7 +46,7 @@ module.exports = (function() {
                 });
             }
 
-            const testNumberRegex = /^([0-9]{1,3}(?:[\.|,]{0,1}[0-9]{3})*[\.|\,]{0,1}[0-9]*)\s{0,1}\D*$/i;
+            const testNumberRegex = /^(-{0,1}[0-9]{1,3}(?:[\.|,]{0,1}[0-9]{3})*[\.|\,]{0,1}[0-9]*)\s{0,1}\D*$/i;
 
             function fixColumnHeader(table, col_height) {
                 table.header.forEach((column) => {
