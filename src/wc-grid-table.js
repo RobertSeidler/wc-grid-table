@@ -1061,7 +1061,7 @@ module.exports = (function() {
         console.log('partial', partialOptions)
         Object.keys(partialOptions).sort((a, b) => (a == 'hiddenColumns') ? 1 : -1).forEach(option => {
           if(option == 'sortedBy'){
-            reapplySorting(this, partialOptionsf);
+            reapplySorting(this, partialOptions);
           } else if (option == 'hiddenColumns') {
             this[option] = partialOptions[option];
             this.redrawTable();
