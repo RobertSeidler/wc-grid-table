@@ -124,7 +124,7 @@ module.exports = (function() {
              */
             function chooseSortsCompareFn(table, data, column) {
                 // if(!Number.isNaN(data.reduce((col, cur) => (col += cur[column] != undefined ? Number.parseFloat(cur[column]) : 0), 0))){
-                if (data.every(row => (typeof(tryTransformToNumber(row[column])) == 'number' || row[column] == undefined))) {
+                if (data.every(row => (typeof(tryTransformToNumber(row[column])) == 'number' || row[column] == undefined || row[column].trim() == ""))) {
                     return table.customCompareNumbers
                 } else {
                     return table.customCompareText
@@ -199,10 +199,11 @@ module.exports = (function() {
              * @param {*} column 
              * @param {*} event 
              */
-            function toggleFilterNegator(table, column, event) {
+            function toggleFilterNegator(table, column, reverse, event) {
+                event.preventDefault();
                 let newOperation = table.activeFilterOperations[column];
                 if (newOperation === undefined || newOperation == '') newOperation = table.filterOperations[0].name;
-                newOperation = table.filterOperations[(table.filterOperations.findIndex(element => (element.name == newOperation)) + 1) % table.filterOperations.length].name;
+                newOperation = table.filterOperations[(table.filterOperations.findIndex(element => (element.name == newOperation)) + table.filterOperations.length + (reverse ? -1 : 1)) % table.filterOperations.length].name;
                 if (table.elements.filterOperations[column]) table.elements.filterOperations[column].innerHTML = table.filterOperations.find(op => op.name == newOperation).char;
                 table.activeFilterOperations[column] = newOperation;
                 table.redrawData();
@@ -317,10 +318,11 @@ module.exports = (function() {
                     filter_negate.innerHTML = '&sube;';
                     filter_negate.classList.add('filter_negator');
 
-                    filter_negate.addEventListener('click', event => toggleFilterNegator.bind(null, table, column)(event))
-                        // filter_negate.style.position = 'absolute';
-                        // filter_negate.style.
-                        // filter_container.append(filter_input);
+                    filter_negate.addEventListener('click', event => toggleFilterNegator.bind(null, table, column, false)(event));
+                    filter_negate.addEventListener('contextmenu', event => toggleFilterNegator.bind(null, table, column, true)(event));
+                    // filter_negate.style.position = 'absolute';
+                    // filter_negate.style.
+                    // filter_container.append(filter_input);
                     filter_container.append(filter_input);
                     filter_container.append(filter_negate);
                     table.elements.filterCells[column] = filter_container;
