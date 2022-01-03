@@ -857,7 +857,7 @@ module.exports = (function() {
   function reapplySorting(table, partialOptions){
     console.log('reaply sorting')
     resetSorting(table);
-    partialOptions['sortedBy'].reverse().slice(-4).forEach(sortStep => {
+    if(partialOptions['sortedBy']) partialOptions['sortedBy'].reverse().slice(-4).forEach(sortStep => {
       if(sortStep.dir == 'desc'){
         onSortClick(table, sortStep.col)
       }
