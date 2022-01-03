@@ -271,8 +271,17 @@ module.exports = (function() {
                 });
                 window.addEventListener('message', function(event) {
                     if (event.data) {
-                        let dataObj = JSON.parse(event.data); // dataObj = {type: 'fix-columns', element: undefined, data: undefined}
-                        if (dataObj.type === 'fix-columns') fixColumnHeader(table, col_height);
+                        try {
+                            console.log(event.data);
+                            let dataObj = JSON.parse(event.data); // dataObj = {type: 'fix-columns', element: undefined, data: undefined}
+                            if (dataObj.type === 'fix-columns') fixColumnHeader(table, col_height);
+                        } catch (error) {
+                            if (error.name == 'SyntaxError' && error.message.contains("JSON.parse:")) {
+                                // Ignore json parse errors; all messages from me use json;
+                            } else {
+                                console.error(error);
+                            }
+                        }
                     }
                 });
                 requestAnimationFrame(() => {
@@ -486,29 +495,29 @@ module.exports = (function() {
         // cell.classList.add()
         // cell.classList.add()
         cell.innerHTML = row[column] != undefined ? row[column] : '';
-        if(column === '#include') {
-          cell.setAttribute('contentEditable', 'true');
-          let tempRowActive = {...row};
-          delete tempRowActive['#include'];
-          // console.log(table.tickedRows);
-          // console.log(JSON.stringify(tempRowActive));
-          // console.log(table.tickedRows.includes(JSON.stringify(tempRowActive)));
-          cell.innerText = table.tickedRows.includes(JSON.stringify(tempRowActive)) ? 'x' : '';
-          cell.addEventListener('input', (event) => {       
-            // console.log('input changed in row ' + rowIndex);     
-            // console.log(event.target.innerText);
-            let tempRow = {...row};
-            delete tempRow['#include'];
-            if(event.target.innerText){
-              // console.log('added row');
-              table.tickedRows.push( JSON.stringify(tempRow));
-            } else {
-              // console.log('removed row');
-              table.tickedRows = table.tickedRows.filter(value => (value !== JSON.stringify(tempRow)));
-            }
-            table.serializeLinkOptions();
-          });
-        }
+        // if(column === '#include') {
+        //   cell.setAttribute('contentEditable', 'true');
+        //   let tempRowActive = {...row};
+        //   delete tempRowActive['#include'];
+        //   // console.log(table.tickedRows);
+        //   // console.log(JSON.stringify(tempRowActive));
+        //   // console.log(table.tickedRows.includes(JSON.stringify(tempRowActive)));
+        //   cell.innerText = table.tickedRows.includes(JSON.stringify(tempRowActive)) ? 'x' : '';
+        //   cell.addEventListener('input', (event) => {       
+        //     // console.log('input changed in row ' + rowIndex);     
+        //     // console.log(event.target.innerText);
+        //     let tempRow = {...row};
+        //     delete tempRow['#include'];
+        //     if(event.target.innerText){
+        //       // console.log('added row');
+        //       table.tickedRows.push( JSON.stringify(tempRow));
+        //     } else {
+        //       // console.log('removed row');
+        //       table.tickedRows = table.tickedRows.filter(value => (value !== JSON.stringify(tempRow)));
+        //     }
+        //     table.serializeLinkOptions();
+        //   });
+        // }
         if(!table.elements.dataCells[column]) table.elements.dataCells[column] = [];
         table.elements.dataCells[column].push(cell);
         table.append(cell)
@@ -644,9 +653,9 @@ module.exports = (function() {
         let formattedRow = row; 
         // console.log(header);
         header.forEach(column => {
-          if(column === '#include' && rowNr === 0){
-            console.log('include 0', row, row[column], formatter[column]);
-          }
+          // if(column === '#include' && rowNr === 0){
+          //   console.log('include 0', row, row[column], formatter[column]);
+          // }
 
           if(formatter[column]){
             formattedRow[column] = formatter[column].reduce((col, cur) => cur(col, rowNr, dataReadOnly), row[column])//.toString();
@@ -654,9 +663,9 @@ module.exports = (function() {
             formattedRow[column] = row[column]
           }
 
-          if(column === '#include' && rowNr === 0){
-            console.log('include 0', formattedRow);
-          }
+          // if(column === '#include' && rowNr === 0){
+          //   console.log('include 0', formattedRow);
+          // }
         })
         return formattedRow;
       });
@@ -1193,19 +1202,20 @@ module.exports = (function() {
      * @param {Array<Object>} data 
      */
     setData(data){
-      let dataWithInclude = data.map(entry => {
-        let tempRow = entry;
-        // delete tempRow['#include'];
-        // tempRow['#include'] = 'x';
-        let result = {'#include': 'x'};
-        Object.keys(tempRow).forEach(key => {
-          result[key] = tempRow[key]; 
-        })
-        // let result = {'#include': 'x', ...tempRow};
-        return result;
-      });
-      console.log('with Include', dataWithInclude);
-      this.data = dataWithInclude;
+      // let dataWithInclude = data.map(entry => {
+      //   let tempRow = entry;
+      //   // delete tempRow['#include'];
+      //   // tempRow['#include'] = 'x';
+      //   let result = {'#include': 'x'};
+      //   Object.keys(tempRow).forEach(key => {
+      //     result[key] = tempRow[key]; 
+      //   })
+      //   // let result = {'#include': 'x', ...tempRow};
+      //   return result;
+      // });
+      // let dataWithInclude = data;
+      // console.log('with Include', dataWithInclude);
+      this.data = data;
       // console.log(transformToGroupedData(data, ["BelID", "Belegdatum", "Lieferant", "Nettobetrag"]))
       this.sortedData = this.data.map(value => value);
       drawTable(this);
