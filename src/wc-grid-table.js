@@ -276,7 +276,7 @@ module.exports = (function() {
                             let dataObj = JSON.parse(event.data); // dataObj = {type: 'fix-columns', element: undefined, data: undefined}
                             if (dataObj.type === 'fix-columns') fixColumnHeader(table, col_height);
                         } catch (error) {
-                            if (error.name == 'SyntaxError' && error.message.contains("JSON.parse:")) {
+                            if (error.name == 'SyntaxError') {
                                 // Ignore json parse errors; all messages from me use json;
                             } else {
                                 console.error(error);
