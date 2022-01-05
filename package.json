@@ -35,8 +35,5 @@
   },
   "optionalDependencies": {
     "lodash.debounce": "^4.0.8"
-  },
-  "dependencies": {
-    "murmurhash-js": "^1.0.0"
   }
 }

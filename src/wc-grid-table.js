@@ -23,7 +23,6 @@ let appname = 'wc-grid-table';
 
 const { regexFilter, textFilter, compareFilter } = require('./filter-utils.js');
 const { createPageChooser, addKeyHandlerToDocument } = require('./pagination-utils.js');
-const murmur = require("murmurhash-js");
 
 var tableCounter = 0;
 
