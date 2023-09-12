@@ -23,7 +23,21 @@ let appname = 'wc-grid-table';
 
 const { regexFilter, textFilter, compareFilter } = require('./filter-utils.js');
 const { createPageChooser, addKeyHandlerToDocument } = require('./pagination-utils.js');
+// const { TableComponent } = require('./wc-grid-table.js');
 
+/**
+ * @typedef {{[functionName: string]: (async (...unkown) => unknown)}} tablePluginClassExtensionFunctions
+ * 
+ * @typedef {{
+ *    name: string, 
+ *    exec: async () => void, 
+ *    type: string, 
+ *    tableExtensions?: tablePluginClassExtensionFunctions,
+ * }} TablePlugin 
+ */
+
+/** @type {TablePlugin} */
+var test;
 var tableCounter = 0;
 
 module.exports = (function() {
@@ -381,6 +395,7 @@ module.exports = (function() {
     if(table.drawOptionals.rewriteurl) footer.append(createResetLinkButton(table));
     if(pageChooser) footer.append(pageChooser);
     if(table.elements.footer) table.elements.footer.remove();
+    if(table.plugins.ui) Reflect.ownKeys(table.plugins.ui).forEach(pluginKey => table.plugins.ui[pluginKey].addFooterButton(table));
     table.elements.footer = footer;
     table.append(footer);
   }
@@ -775,15 +790,17 @@ module.exports = (function() {
   function drawData(table){
     table.sortedData = applySorting(table);
     applyConditionalColumnStyling(table, table.sortedData, table.header, table.conditionalColumnStyle, table.conditionalStyleOptions);
-    console.log('sorted data', table.sortedData);
-    console.log('header', table.header);
-    let formattedData = applyFormatter(table.sortedData, table.header, table.formatter, table.formatterOptions);
-    console.log('formatted data', formattedData);
-    let filteredData = applyFilter(table, formattedData, table.header, table.filter, table.filterOptions);
-    console.log('filtered data', filteredData);
+    let formattedData = table.formattedData = applyFormatter(table.sortedData, table.header, table.formatter, table.formatterOptions);
+    let filteredData = table.filteredData = applyFilter(table, formattedData, table.header, table.filter, table.filterOptions);
     table.pagination.filteredDataCount = filteredData.length;
-    let pageinatedData = applyPagination(table, filteredData);
-    console.log('paginated data', pageinatedData);
+    let pageinatedData = table.pageinatedData = applyPagination(table, filteredData);
+    console.log({
+      'header': table.header,
+      'sorted data': table.sortedData, 
+      'formatted data': formattedData,
+      'filtered data': filteredData,
+      'paginated data': pageinatedData
+    });
     // pageinatedData = pageinatedData.map(entry => ({'#include': table.tickedRows.includes(JSON.stringify(entry)) ? 'x' : '', ...entry}))
     table.style.gridTemplateRows = `${
       table.drawOptionals.header ? 'max-content' : ''} ${
@@ -927,6 +944,7 @@ module.exports = (function() {
         'drawOptionals',
         'elements',
         'tableId',
+        'plugins',
       ]);
 
       this.options = {}
@@ -952,6 +970,8 @@ module.exports = (function() {
         'visibleColumns',
         'tickedRows',
       ]);
+
+      this.plugins = {data: {}};
 
       this.useDefaultOptions();
     }
@@ -1195,12 +1215,13 @@ module.exports = (function() {
       filterChanged = this.optionalDebounceFn(filterChanged, ...filterDebouncedOptions);
     }
 
+
     /**
      * Set the data to be displayed by table as a list of row objects.
      * 
      * @param {Array<Object>} data 
      */
-    setData(data){
+    _setData(data){
       // let dataWithInclude = data.map(entry => {
       //   let tempRow = entry;
       //   // delete tempRow['#include'];
@@ -1219,6 +1240,10 @@ module.exports = (function() {
       this.sortedData = this.data.map(value => value);
       drawTable(this);
       this.loadInitialOptions();
+    }
+
+    setData (data){
+      this._setData(data);
     }
 
     /**
@@ -1265,6 +1290,40 @@ module.exports = (function() {
       drawTable(this);
       reapplySorting(this, partialOptions);
     }
+
+    /**
+     * register a plugin, which is called somewhere in the lifecycle of TableComponent (depending on pluginType).
+     * @param {TablePlugin} plugin
+     * @param {string} pluginType - specifies at which point the plugins exec method is called. One of `[data]`
+     * @throws {Error} when pluginType isn't known 
+     */
+    registerPlugin(plugin){
+      this.plugins[plugin.type][plugin.name] = plugin;
+      let extensionMethods = Reflect.ownKeys(plugin.tableExtensions);
+      extensionMethods.forEach(method => {
+        TableComponent.prototype[method] = plugin.tableExtensions[method].bind(this);
+      });
+      switch(plugin.type){
+        case "data":
+          let setDataFn = this.setData.bind(this);
+          this.setData = function(data) {
+            // console.log({important: this});
+            
+            plugin.exec.bind(this)(data).then( (modifiedData) => {
+              // this._setData(modifiedData);
+              setDataFn(modifiedData);
+            }); 
+          }
+          break;
+        case "ui":
+
+          break;
+        default:
+          throw new Error("")
+          break;
+      }
+    }
+    
   }
 
   return {regexFilter, textFilter, compareNumbers, compareText, chooseSortsCompareFn, defineCustomElement, TableComponent};

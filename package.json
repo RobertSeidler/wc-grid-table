@@ -1,39 +1,42 @@
 {
-  "name": "wc-grid-table",
-  "version": "3.1.4",
-  "description": "A table component implemented with css-grid and webcomponents.",
-  "main": "dist/standalone/bundle.min.js",
-  "scripts": {
-    "setup_folder": "mkdir -p dist && mkdir -p dist/example1 && mkdir -p dist/standalone",
-    "copy_public": "cp src/public/* dist && cp src/example1/* dist/example1 && cp src/standalone/* dist/standalone",
-    "build": "browserify -t browserify-css src/wc-grid-table.js > dist/bundle.js",
-    "build_min": "browserify -p tinyify -t browserify-css src/wc-grid-table.js > dist/bundle.min.js",
-    "build_standalone": "browserify -t browserify-css src/wc-grid-table.js --standalone WcGridTable > dist/standalone/bundle.js",
-    "build_standalone_min": "browserify -p tinyify -t browserify-css src/wc-grid-table.js --standalone WcGridTable > dist/standalone/bundle.min.js",
-    "build_exmpl1": "browserify -t browserify-css src/example1/example1.js > dist/example1/bundle.js",
-    "build_exmpl1_min": "browserify -p tinyify -t browserify-css src/example1/example1.js > dist/example1/bundle.min.js",
-    "build_all": "npm run build && npm run build_min && npm run build_standalone && npm run build_standalone_min && npm run build_exmpl1 && npm run build_exmpl1_min && npm run copy_public",
-    "publish_patch": "npm run build_all && git add * && git commit && npm version patch && git push && npm publish && git push --tags",
-    "test": "jest",
-    "start-example": "http-server -o /standalone dist/"
-  },
-  "keywords": [
-    "table",
-    "webcomponent",
-    "grid"
-  ],
-  "author": "Robert Seidler",
-  "license": "ISC",
-  "repository": "https://github.com/RobertSeidler/wc-grid-table.git",
-  "devDependencies": {
-    "browserify": "^16.5.2",
-    "browserify-css": "^0.15.0",
-    "http-server": "^14.0.0",
-    "jest": "^27.3.1",
-    "jest-css-modules": "^2.1.0",
-    "tinyify": "^2.5.2"
-  },
-  "optionalDependencies": {
-    "lodash.debounce": "^4.0.8"
-  }
+    "name": "wc-grid-table",
+    "version": "3.1.4",
+    "description": "A table component implemented with css-grid and webcomponents.",
+    "main": "dist/standalone/bundle.min.js",
+    "scripts": {
+        "setup_folder": "mkdir -p dist && mkdir -p dist/example1 && mkdir -p dist/standalone",
+        "copy_public": "copyfiles -f src/public/* dist && copyfiles -f src/example1/* dist/example1 && copyfiles -f src/example2/* dist/example2 && copyfiles -f src/standalone/* dist/standalone",
+        "build": "browserify -t browserify-css src/wc-grid-table.js > dist/bundle.js",
+        "build_min": "browserify -p tinyify -t browserify-css src/wc-grid-table.js > dist/bundle.min.js",
+        "build_standalone": "browserify -t browserify-css src/wc-grid-table.js --standalone WcGridTable > dist/standalone/bundle.js",
+        "build_standalone_min": "browserify -p tinyify -t browserify-css src/wc-grid-table.js --standalone WcGridTable > dist/standalone/bundle.min.js",
+        "build_exmpl1": "browserify -t browserify-css src/example1/example1.js > dist/example1/bundle.js",
+        "build_exmpl1_min": "browserify -p tinyify -t browserify-css src/example1/example1.js > dist/example1/bundle.min.js",
+        "build_exmpl2": "browserify -t browserify-css src/example2/example2.js > dist/example2/bundle.js",
+        "build_exmpl2_min": "browserify -p tinyify -t browserify-css src/example2/example2.js > dist/example2/bundle.min.js",
+        "build_all": "npm run build && npm run build_min && npm run build_standalone && npm run build_standalone_min && npm run build_exmpl1 && npm run build_exmpl1_min && npm run build_exmpl2 && npm run build_exmpl2_min && npm run copy_public",
+        "publish_patch": "npm run build_all && git add * && git commit && npm version patch && git push && npm publish && git push --tags",
+        "test": "jest",
+        "start-example": "http-server -o /standalone dist/"
+    },
+    "keywords": [
+        "table",
+        "webcomponent",
+        "grid"
+    ],
+    "author": "Robert Seidler",
+    "license": "ISC",
+    "repository": "https://github.com/RobertSeidler/wc-grid-table.git",
+    "devDependencies": {
+        "browserify": "^16.5.2",
+        "browserify-css": "^0.15.0",
+        "copyfiles": "^2.4.1",
+        "http-server": "^14.0.0",
+        "jest": "^27.3.1",
+        "jest-css-modules": "^2.1.0",
+        "tinyify": "^2.5.2"
+    },
+    "optionalDependencies": {
+        "lodash.debounce": "^4.0.8"
+    }
 }

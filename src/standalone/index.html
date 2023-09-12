@@ -1,21 +1,22 @@
 <!DOCTYPE html>
+
 <head>
-  <meta charset="utf-8"/>
-  <script src="./bundle.js"></script>
+    <meta charset="utf-8" />
+    <script src="./bundle.js"></script>
 </head>
 
 <body>
 
-  <script>
-    WcGridTable.defineCustomElement();
-    let table = document.createElement('wc-grid-table');
-    // table.toggleAttribute('norewriteurl');
-    // table.setAttribute('options', 'eyJmaWx0ZXIiOnsiTGllZmVyYW50IjoiYm9wbGEifSwic29ydGVkQnkiOlt7ImNvbCI6Ik5ldHRvYmV0cmFnIiwiZGlyIjoiZGVzYyJ9LHsiY29sIjoiQmVsUG9zSUQiLCJkaXIiOiJkZXNjIn1dfQ');
+    <script>
+        WcGridTable.defineCustomElement();
+        let table = document.createElement('wc-grid-table');
+        // table.toggleAttribute('norewriteurl');
+        // table.setAttribute('options', 'eyJmaWx0ZXIiOnsiTGllZmVyYW50IjoiYm9wbGEifSwic29ydGVkQnkiOlt7ImNvbCI6Ik5ldHRvYmV0cmFnIiwiZGlyIjoiZGVzYyJ9LHsiY29sIjoiQmVsUG9zSUQiLCJkaXIiOiJkZXNjIn1dfQ');
 
-    fetch('../grouped_data.json')
-      .then(response => response.json())
-      .then(data => table.setData(data))
+        fetch('../grouped_data.json')
+            .then(response => response.json())
+            .then(data => table.setData(data))
 
-    document.querySelector('body').append(table)
-  </script>
+        document.querySelector('body').append(table)
+    </script>
 </body>
