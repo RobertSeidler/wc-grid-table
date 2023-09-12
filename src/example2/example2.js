@@ -1,6 +1,8 @@
 // let { MarkInput, fetchSelectCheckedValues, fetchCreateTableIfNotExists } = require("../../../marker-input/MarkInput.js");
 const { TableComponent, defineCustomElement } = require('../wc-grid-table.js');
 const { MarkerInputPlugin } = require('../../../marker-input/index.js');
+// const { MarkerInputPlugin } = require('https://www.unpkg.com/wc-grid-table-marker-input@1.0.8/index.js');
+
 
 defineCustomElement();
 
