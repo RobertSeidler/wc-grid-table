@@ -369,8 +369,8 @@ module.exports = (function() {
             function createFooter(table, data, pageChooser) {
                 bindColumnChooserHandler(table);
                 let footer = document.createElement('div');
-                footer.classList.add('wgt-footer')
-                footer.style.gridColumn = `1 / ${table.header.length + 1}`
+                footer.classList.add('wgt-footer');
+                footer.style.gridColumn = `1 / ${table.header.length + 1}`;
 
                 if (!table.elements.columnChooserMenuContainer) {
                     table.elements.columnChooserMenuContainer = createColumnChooserMenuContainer(table, table.headerAll);
@@ -386,19 +386,19 @@ module.exports = (function() {
                 if (table.data.length !== data.length) {
                     let filtered_row_count = document.createElement('div');
                     filtered_row_count.innerHTML = `Filtered: ${data.length}${table.pagination.active ? ` / ${table.pagination.filteredDataCount}` : ''}`;
-      filtered_row_count.classList.add('wgt-footer_cell', 'wgt-cell')
-      footer.append(filtered_row_count)
-      table.elements.filtered_row_count = filtered_row_count;
-    }
-    
-    if(footer) footer.append(createColumnChooserButton(table));
-    if(table.drawOptionals.rewriteurl) footer.append(createResetLinkButton(table));
-    if(pageChooser) footer.append(pageChooser);
-    if(table.elements.footer) table.elements.footer.remove();
-    if(table.plugins.ui) Reflect.ownKeys(table.plugins.ui).forEach(pluginKey => table.plugins.ui[pluginKey].addFooterButton(table));
-    table.elements.footer = footer;
-    table.append(footer);
-  }
+                  filtered_row_count.classList.add('wgt-footer_cell', 'wgt-cell');
+                  footer.append(filtered_row_count);
+                  table.elements.filtered_row_count = filtered_row_count;
+              }
+  
+              if(footer) footer.append(createColumnChooserButton(table));
+              if(table.drawOptionals.rewriteurl) footer.append(createResetLinkButton(table));
+              if(pageChooser) footer.append(pageChooser);
+              if(table.elements.footer) table.elements.footer.remove();
+              table.elements.footer = footer;
+              if(table.plugins.ui) Reflect.ownKeys(table.plugins.ui).forEach(pluginKey => table.plugins.ui[pluginKey].addFooterButton(table));
+              table.append(footer);
+            }
 
   let boundColumnChooserButtonHandler = undefined;
   let boundColumnChooserOutsideHandler = undefined;
@@ -1298,10 +1298,12 @@ module.exports = (function() {
      * @throws {Error} when pluginType isn't known 
      */
     registerPlugin(plugin){
+      console.log(plugin);
+      if (!this.plugins[plugin.type]) this.plugins[plugin.type] = {};
       this.plugins[plugin.type][plugin.name] = plugin;
       let extensionMethods = Reflect.ownKeys(plugin.tableExtensions);
       extensionMethods.forEach(method => {
-        TableComponent.prototype[method] = plugin.tableExtensions[method].bind(this);
+        if(!TableComponent.prototype[method]) TableComponent.prototype[method] = plugin.tableExtensions[method].bind(this);
       });
       switch(plugin.type){
         case "data":
@@ -1316,7 +1318,7 @@ module.exports = (function() {
           }
           break;
         case "ui":
-
+          // plugin.exec(this);
           break;
         default:
           throw new Error("")

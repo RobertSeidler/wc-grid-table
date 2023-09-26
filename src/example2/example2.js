@@ -1,6 +1,7 @@
 // let { MarkInput, fetchSelectCheckedValues, fetchCreateTableIfNotExists } = require("../../../marker-input/MarkInput.js");
 const { TableComponent, defineCustomElement } = require('../wc-grid-table.js');
 const { MarkerInputPlugin } = require('../../../marker-input/index.js');
+const { ExportPlugin } = require('../../../wc-grid-table-xlsx-export/index.js');
 // const { MarkerInputPlugin } = require('https://www.unpkg.com/wc-grid-table-marker-input@1.0.8/index.js');
 
 
@@ -104,6 +105,7 @@ table.setAttribute('marker-identifierfield', 'Unternehmen');
 table.setAttribute('marker-databasetable', 'Example2Test');
 
 table.registerPlugin(MarkerInputPlugin);
+table.registerPlugin(ExportPlugin);
 
 // table.header = ["Artikelnummer", "Unternehmen", "Einzelpreis", "Rabattsatz"]
 let currencyFormatter = (value, rowIndex, orgData) => (value != undefined && value != '' ? `${Number.parseFloat(value).toFixed(2)} €` : '');
