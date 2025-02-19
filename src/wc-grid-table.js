@@ -1109,7 +1109,7 @@ module.exports = (function() {
       this.linkOptions.forEach(option => {
         linkOptions[option] = this[option];
       })
-      let newSerializedValue = btoa(JSON.stringify(linkOptions, (key, value) => value instanceof Function ? serializeFunction(value) : value));
+      let newSerializedValue = btoa(encodeURIComponent(JSON.stringify(linkOptions, (key, value) => value instanceof Function ? serializeFunction(value) : value)));
       let newUrlSearchParam = replaceUrlSearchParameter(`table${this.tableId}`, newSerializedValue);
       if(this.drawOptionals.rewriteurl) history.replaceState(history.state, '', newUrlSearchParam)
     }
@@ -1119,7 +1119,7 @@ module.exports = (function() {
       location.search.slice(1).split('&').forEach(searchOption => {
         let split = searchOption.split('=')
         if(split[0] == `table${this.tableId}`){
-          serializedOptions = atob(split.slice(1).join('='));
+          serializedOptions = decodeURIComponent(atob(split.slice(1).join('=')));
         }
       })
       let partialOptions = JSON.parse(serializedOptions, (key, value) => {
@@ -1135,13 +1135,13 @@ module.exports = (function() {
 
     deserializeOptions(serializedOptions){
       if(serializedOptions){
-        return JSON.parse(atob(serializedOptions, (key, value) => {
+        return JSON.parse(decodeURIComponent(atob(serializedOptions, (key, value) => {
           if (!(value instanceof Array)  && value.toString().match(funRegex)) {
             return deserializeFunction(value);
           } else {
             return value;
           }
-        }));
+        })));
       } else {
         return {};
       }
