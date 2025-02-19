@@ -505,7 +505,8 @@ module.exports = (function() {
     data.forEach((row, rowIndex) => {
       table.header.forEach( (column, columnIndex) => {
         let cell = document.createElement('div');
-        cell.classList.add('wgt-cell', 'wgt-data-cell', `wgt-column_${column.split(' ').join('_')}`, `wgt-row_${rowIndex}`, `wgt-zebra_${rowIndex % 2}`)
+        cell.classList.add('wgt-cell', 'wgt-data-cell', `wgt-column_${column.split(' ').join('_')}`, `wgt-row_${rowIndex}`, `wgt-zebra_${rowIndex % 2}`);
+        if(column.includes('€')) cell.classList.add('wgt-data-cell-money');
         // cell.classList.add()
         // cell.classList.add()
         cell.innerHTML = row[column] != undefined ? row[column] : '';

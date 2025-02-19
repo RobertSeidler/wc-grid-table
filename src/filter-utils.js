@@ -8,17 +8,22 @@
  * @param {string} filterInput the value of the filter text input field.
  * @param {string} testValue the table value to validate against.
  */
-function regexFilter(negate, filterInput, testValue){
-  // let negate = filterInput.substring(0, 3) === '!!!';
-  // filterInput = negate ? filterInput.substring(3) : filterInput;
-  let result = false;
-  if(testValue != undefined){
-    let matches = testValue.toString().match(new RegExp(filterInput, 'i'));
-    result = Boolean(matches) && matches.length > 0;
-  }
-  return negate ? !result : result;
+function regexFilter(negate, filterInput, testValue) {
+    // let negate = filterInput.substring(0, 3) === '!!!';
+    // filterInput = negate ? filterInput.substring(3) : filterInput;
+    let result = false;
+    if (testValue != undefined) {
+        let matches = testValue.toString().match(new RegExp(filterInput, 'i'));
+        result = Boolean(matches) && matches.length > 0;
+    }
+    return negate ? !result : result;
 }
-  
+
+function stripHtml(html) {
+    let doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || "";
+}
+
 /**
  * Test the filter input string with includes (case is ignored) against the table value.
  * Only rows where the filter input is a substring of the tested value.
@@ -30,26 +35,26 @@ function regexFilter(negate, filterInput, testValue){
  * @param {string} filterInput the value of the filter text input field.
  * @param {string} testValue the table value to validate against.
  */
-function textFilter(negate, filterInput, testValue){
-  // let negate = filterInput.substring(0, 3) === '!!!';
-  // filterInput = negate ? filterInput.substring(3) : filterInput;
-  let result = false;
-  if(testValue != undefined){
-    result = testValue.toString().toUpperCase().includes(filterInput.toUpperCase());
-  }
-  return negate ? !result : result;
-}
-
-function compareFilter(operation, filterInput, testValue){
-  let result = false;
-  if(testValue != undefined){
-    try{
-      result = operation(Number.parseFloat(filterInput), Number.parseFloat(testValue));
-    } catch (err){
-      result = operation(filterInput.toString(), testValue.toString());
+function textFilter(negate, filterInput, testValue) {
+    // let negate = filterInput.substring(0, 3) === '!!!';
+    // filterInput = negate ? filterInput.substring(3) : filterInput;
+    let result = false;
+    if (testValue != undefined) {
+        result = stripHtml(testValue.toString()).toUpperCase().includes(stripHtml(filterInput).toUpperCase());
     }
-  }
-  return result;
+    return negate ? !result : result;
 }
 
-module.exports = {regexFilter, textFilter, compareFilter};
+function compareFilter(operation, filterInput, testValue) {
+    let result = false;
+    if (testValue != undefined) {
+        try {
+            result = operation(Number.parseFloat(filterInput), Number.parseFloat(testValue));
+        } catch (err) {
+            result = operation(filterInput.toString(), testValue.toString());
+        }
+    }
+    return result;
+}
+
+module.exports = { regexFilter, textFilter, compareFilter };

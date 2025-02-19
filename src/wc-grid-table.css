@@ -131,6 +131,10 @@
     max-width: 500px;
 }
 
+.wgt-data-cell-money{
+    text-align: end;
+}
+
 .wgt-header.wgt-cell {
     padding-right: 30px;
 }
