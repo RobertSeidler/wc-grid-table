@@ -434,10 +434,12 @@ module.exports = (function() {
   let boundColumnChooserButtonHandler = undefined;
   let boundColumnChooserOutsideHandler = undefined;
   let boundColumnChooserChangeColumnHandler = undefined;
+  let boundColumnChooserKeyHandler = undefined;
 
   function bindColumnChooserHandler(table){
     boundColumnChooserButtonHandler = onColumnChooserButtonHandler.bind(null, table);
     boundColumnChooserOutsideHandler = onColumnChooserOutsideHandler.bind(null, table);
+    boundColumnChooserKeyHandler = onColumnChooserKeyHandler.bind(null, table);
   }
 
   function createColumnChooserButton(table){
@@ -475,48 +477,68 @@ module.exports = (function() {
     if(!table.elements.columnChooserCheckbox) table.elements.columnChooserCheckbox = {};
     let menu = document.createElement('ul');
     menu.classList.add('column-chooser-menu', 'column-chooser');
-    let menuContainer = document.createElement('div');
-    menuContainer.classList.add('column-chooser-menu-container', 'hidden')
     debugLog(table, (new Set(allHeader)).union(table.hiddenColumns));
     ((new Set(allHeader)).union(table.hiddenColumns)).forEach(column => {
       menu.append(createColumnChooserMenuItems(table, column));
     })
-    menuContainer.append(menu)
+
+    let title = document.createElement('span');
+    title.classList.add('column-chooser');
+    title.innerHTML = 'columns';
+
+    let closeButton = document.createElement('div');
+    closeButton.classList.add('column-chooser-close');
+    closeButton.innerHTML = '&times;';
+    closeButton.addEventListener('click', () => closeColumnChooser(table));
+
+    let dialogHeader = document.createElement('div');
+    dialogHeader.classList.add('column-chooser-dialog-header', 'column-chooser');
+    dialogHeader.append(title, closeButton);
+
+    let dialog = document.createElement('div');
+    dialog.classList.add('column-chooser-dialog', 'column-chooser');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-label', 'choose columns');
+    dialog.append(dialogHeader, menu);
+
+    let menuContainer = document.createElement('div');
+    menuContainer.classList.add('column-chooser-menu-container', 'hidden')
+    menuContainer.append(dialog)
     // table.elements.columnChooserMenuContainer = menuContainer;
     return menuContainer;
   }
 
+  function openColumnChooser(table){
+    table.elements.columnChooserMenuContainer.classList.remove('hidden');
+    table.root_document.addEventListener('click', boundColumnChooserOutsideHandler);
+    table.root_document.addEventListener('keydown', boundColumnChooserKeyHandler);
+  }
+
+  function closeColumnChooser(table){
+    table.elements.columnChooserMenuContainer.classList.add('hidden');
+    table.root_document.removeEventListener('click', boundColumnChooserOutsideHandler);
+    table.root_document.removeEventListener('keydown', boundColumnChooserKeyHandler);
+  }
+
   function onColumnChooserButtonHandler(table, event){
-    let offset = table.offsetLeft;
-
-    if(table.elements.total_rows){
-      offset += table.elements.total_rows.offsetWidth;
-    }
-    if(table.elements.filtered_row_count){
-      offset += table.elements.filtered_row_count.offsetWidth;
-    }
-
-    table.elements.columnChooserMenuContainer.style.left = `${offset}px`;
-
-    let classList = table.elements.columnChooserMenuContainer.classList;
-    if(classList.contains('hidden')){
-      classList.remove('hidden');
-      table.root_document.addEventListener('click', boundColumnChooserOutsideHandler)
+    if(table.elements.columnChooserMenuContainer.classList.contains('hidden')){
+      openColumnChooser(table);
     } else {
-      classList.add('hidden')
-      table.root_document.removeEventListener('click', boundColumnChooserOutsideHandler)
+      closeColumnChooser(table);
     }
-
   }
 
   function onColumnChooserOutsideHandler(table, event){
     if(!event.srcElement.classList.contains('column-chooser')){
       if(!event.srcElement.classList.contains('footer-button')){
-        let classList = table.elements.columnChooserMenuContainer.classList;
-        classList.add('hidden');
-        table.root_document.removeEventListener('click', boundColumnChooserOutsideHandler)
+        closeColumnChooser(table);
       }
     }
+  }
+
+  function onColumnChooserKeyHandler(table, event){
+    if(event.key === 'Escape') closeColumnChooser(table);
   }
 
   function onColumnChooserChangeColumnHandler(table, column, event){
