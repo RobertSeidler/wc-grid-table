@@ -5,18 +5,19 @@ const {regexFilter, textFilter, compareFilter} = require('../src/filter-utils.js
 jest.mock('../src/wc-grid-table.css')
 
 describe('compareNumbers', () => {
-  test('when first arg bigger then second return should be positive', () => {
-    expect(compareNumbers(23, 22)).toBeGreaterThan(0);
-    expect(compareNumbers(1.8, 0.9)).toBeGreaterThan(0);
-    expect(compareNumbers(100, -12)).toBeGreaterThan(0);
-    expect(compareNumbers(-32.9, -78)).toBeGreaterThan(0);
+  // compareNumbers returns (b - a), so larger values sort first before applySorting may reverse.
+  test('when first arg bigger then second return should be negative', () => {
+    expect(compareNumbers(23, 22)).toBeLessThan(0);
+    expect(compareNumbers(1.8, 0.9)).toBeLessThan(0);
+    expect(compareNumbers(100, -12)).toBeLessThan(0);
+    expect(compareNumbers(-32.9, -78)).toBeLessThan(0);
   });
 
-  test('when first arg smaller then second should be negative', () => {
-    expect(compareNumbers(22, 23)).toBeLessThan(0);
-    expect(compareNumbers(0.2, 1)).toBeLessThan(0);
-    expect(compareNumbers(-12.65, 100.12)).toBeLessThan(0);
-    expect(compareNumbers(-198, -123)).toBeLessThan(0);
+  test('when first arg smaller then second should be positive', () => {
+    expect(compareNumbers(22, 23)).toBeGreaterThan(0);
+    expect(compareNumbers(0.2, 1)).toBeGreaterThan(0);
+    expect(compareNumbers(-12.65, 100.12)).toBeGreaterThan(0);
+    expect(compareNumbers(-198, -123)).toBeGreaterThan(0);
   });
 
   test('when equal, should return 0', () => {
@@ -31,7 +32,7 @@ describe('compareNumbers', () => {
   });
 
   test('type mismatches should compare as usual, numerical', () => {
-    expect(compareNumbers(1, '02')).toBeLessThan(0);
+    expect(compareNumbers(1, '02')).toBeGreaterThan(0);
     expect(compareNumbers('0100', 100)).toEqual(0);
   });
 

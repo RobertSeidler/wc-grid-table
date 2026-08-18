@@ -687,7 +687,8 @@ module.exports = (function() {
     if(options.active){
       // console.log(header);
       return data.map((row, rowNr, dataReadOnly) => {
-        let formattedRow = row; 
+        // Copy, so that formatting stays presentational and never overwrites the source values.
+        let formattedRow = Object.assign({}, row);
         // console.log(header);
         header.forEach(column => {
           // if(column === '#include' && rowNr === 0){
@@ -813,10 +814,10 @@ module.exports = (function() {
   function drawData(table){
     table.sortedData = applySorting(table);
     applyConditionalColumnStyling(table, table.sortedData, table.header, table.conditionalColumnStyle, table.conditionalStyleOptions);
-    let formattedData = table.formattedData = applyFormatter(table.sortedData, table.header, table.formatter, table.formatterOptions);
-    let filteredData = table.filteredData = applyFilter(table, formattedData, table.header, table.filter, table.filterOptions);
+    let filteredData = table.filteredData = applyFilter(table, table.sortedData, table.header, table.filter, table.filterOptions);
     table.pagination.filteredDataCount = filteredData.length;
-    let pageinatedData = table.pageinatedData = applyPagination(table, filteredData);
+    let formattedData = table.formattedData = applyFormatter(filteredData, table.header, table.formatter, table.formatterOptions);
+    let pageinatedData = table.pageinatedData = applyPagination(table, formattedData);
     console.log({
       'header': table.header,
       'sorted data': table.sortedData, 
