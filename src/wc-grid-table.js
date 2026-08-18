@@ -61,6 +61,15 @@ module.exports = (function() {
 
             const testNumberRegex = /^(-{0,1}[0-9]{1,3}(?:[\.|,]{0,1}[0-9]{3})*[\.|\,]{0,1}[0-9]*)\s{0,1}\D*$/i;
 
+            /**
+             * Logs only when the table has the `debug` attribute set.
+             * @param {TableComponent} table
+             * @param {...any} args
+             */
+            function debugLog(table, ...args) {
+                if (table && table.debug) console.log(...args);
+            }
+
             function fixColumnHeader(table, col_height) {
                 table.header.forEach((column) => {
                     let col_header = table.elements.header[column];
@@ -307,7 +316,7 @@ module.exports = (function() {
                 window.addEventListener('message', function(event) {
                     if (event.data) {
                         try {
-                            console.log(event.data);
+                            debugLog(table, event.data);
                             let dataObj = JSON.parse(event.data); // dataObj = {type: 'fix-columns', element: undefined, data: undefined}
                             if (dataObj.type === 'fix-columns') fixColumnHeader(table, col_height);
                         } catch (error) {
@@ -468,7 +477,7 @@ module.exports = (function() {
     menu.classList.add('column-chooser-menu', 'column-chooser');
     let menuContainer = document.createElement('div');
     menuContainer.classList.add('column-chooser-menu-container', 'hidden')
-    console.log((new Set(allHeader)).union(table.hiddenColumns));
+    debugLog(table, (new Set(allHeader)).union(table.hiddenColumns));
     ((new Set(allHeader)).union(table.hiddenColumns)).forEach(column => {
       menu.append(createColumnChooserMenuItems(table, column));
     })
@@ -752,7 +761,7 @@ module.exports = (function() {
 
     if(!table.headerAll && table.data.length > 0){
       let genHeader = generateHeader(table.data);
-      console.log('genheader', genHeader);
+      debugLog(table, 'genheader', genHeader);
       // if(!genHeader.includes('#include')) table.headerAll = ['#include'].concat(genHeader);
       table.headerAll = genHeader;
 
@@ -776,7 +785,7 @@ module.exports = (function() {
       }
     }
 
-    console.log('hidden columns', table.hiddenColumns);
+    debugLog(table, 'hidden columns', table.hiddenColumns);
 
     if(table.headerAll){
       table.header = 
@@ -799,7 +808,7 @@ module.exports = (function() {
       table.displayedData = drawData(table);
 
       //? Log, that is send to Tracker Server:
-      console.log('Finished transform of data.', table.displayedData, appname);
+      debugLog(table, 'Finished transform of data.', table.displayedData, appname);
 
       table.elements.pageChooser = createPageChooser(table, table.displayedData);
 
@@ -818,7 +827,7 @@ module.exports = (function() {
     table.pagination.filteredDataCount = filteredData.length;
     let formattedData = table.formattedData = applyFormatter(filteredData, table.header, table.formatter, table.formatterOptions);
     let pageinatedData = table.pageinatedData = applyPagination(table, formattedData);
-    console.log({
+    debugLog(table, {
       'header': table.header,
       'sorted data': table.sortedData, 
       'formatted data': formattedData,
@@ -895,7 +904,7 @@ module.exports = (function() {
   }
 
   function reapplySorting(table, partialOptions){
-    console.log('reaply sorting')
+    debugLog(table, 'reaply sorting')
     resetSorting(table);
     if(partialOptions['sortedBy']) partialOptions['sortedBy'].reverse().slice(-4).forEach(sortStep => {
       if(sortStep.dir == 'desc'){
@@ -940,6 +949,11 @@ module.exports = (function() {
    *  - customChooseSortsCompareFn - a function maps columns to sorting behavior. Expected return for given (table: TableComponent instance, data: Array<Object>, column: string)
    *    is a function to compare the values of this column.
    *  - customCompareNumbers / customCompareText - functions to replace default sort behavior corresponing to sorting numbers / text. Like default js CompareFn used in Array.prototype.sort
+   *
+   * HTML attributes:
+   *  - debug - when present, enables verbose console logging for sorting, filtering, formatting and plugins
+   *  - page-size - initial page size for pagination
+   *  - height - max-height of the table container
    */
   class TableComponent extends HTMLElement{
     constructor(){
@@ -1106,11 +1120,12 @@ module.exports = (function() {
       this.drawOptionals = {};
 
       this.tickedRows = [];
+      this.debug = false;
     }
 
     loadPartialOptions(partialOptions){
       if (this.data.length > 0){
-        console.log('partial', partialOptions)
+        debugLog(this, 'partial', partialOptions)
         Object.keys(partialOptions).sort((a, b) => (a == 'hiddenColumns') ? 1 : -1).forEach(option => {
           if(option == 'sortedBy'){
             reapplySorting(this, partialOptions);
@@ -1200,6 +1215,7 @@ module.exports = (function() {
       if(pageSize) {
         this.pagination.pageSize = pageSize;
       }
+      this.debug = this.hasAttribute('debug');
 
       this.loadInitialOptions();
       drawTable(this);
@@ -1322,7 +1338,7 @@ module.exports = (function() {
      * @throws {Error} when pluginType isn't known 
      */
     registerPlugin(plugin){
-      console.log(plugin);
+      debugLog(this, plugin);
       if (!this.plugins[plugin.type]) this.plugins[plugin.type] = {};
       this.plugins[plugin.type][plugin.name] = plugin;
       let extensionMethods = Reflect.ownKeys(plugin.tableExtensions);
