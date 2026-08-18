@@ -36,8 +36,6 @@ const { createPageChooser, addKeyHandlerToDocument } = require('./pagination-uti
  * }} TablePlugin 
  */
 
-/** @type {TablePlugin} */
-var test;
 var tableCounter = 0;
 
 module.exports = (function() {
@@ -676,24 +674,41 @@ module.exports = (function() {
   }
 
   /**
+   * Build a compare function covering every sort step (table.sortedBy, primary first). Rows that tie in
+   * the primary column are decided by the following steps, so reversing one column does not reorder the
+   * others. Empty values always end up at the bottom, independent of the sort direction.
+   *
+   * @param {TableComponent} table reference to TableComponent
+   * @param {Array<{col: string, dir: string}>} sortedBy the sort steps, primary sorting first
+   * @returns {(a: Object, b: Object) => number} compare function for Array.prototype.sort
+   */
+  function createSortCompareFn(table, sortedBy){
+    return (a, b) => {
+      for(let sortStep of sortedBy){
+        let column = sortStep.col;
+        let aEmpty = a[column] == undefined || a[column] === '';
+        let bEmpty = b[column] == undefined || b[column] === '';
+        let result = 0;
+        if(aEmpty || bEmpty){
+          result = aEmpty && bEmpty ? 0 : (aEmpty ? 1 : -1);
+        } else {
+          result = table.customChooseSortsCompareFn(table, table.data, column)(a[column], b[column]);
+          if(sortStep.dir === 'desc') result = -result;
+        }
+        if(result !== 0) return result;
+      }
+      return 0;
+    };
+  }
+
+  /**
    * Sorts the data, be the spcified sorting (table.sortedBy).
    * @param {TableComponent} table reference to TableComponent
    * @returns {Object[]} sorted data
    */
   function applySorting(table){
-    // if(column) {
-    //   return table.sortedData.sort((a, b) => {
-    //     return table.customChooseSortsCompareFn(table, table.sortedData, column)(a[column], b[column])
-    //   })
-    // } else 
     if(table.sortedBy && table.sortedBy.length > 0) {
-      column = table.sortedBy[0].col;
-      let sorted = table.sortedData.sort((a, b) => {
-        return table.customChooseSortsCompareFn(table, table.data, column)(a[column], b[column])
-      })
-      if(table.sortedBy[0].dir === 'desc')
-        sorted = [].concat(sorted.filter(entry => entry[column] != undefined && entry[column] !== '').reverse(), sorted.filter(entry => entry[column] == undefined || entry[column] === ''));
-      return sorted;
+      return table.sortedData.sort(createSortCompareFn(table, table.sortedBy));
     } else {
       return table.sortedData;
     }
@@ -1390,5 +1405,5 @@ module.exports = (function() {
     
   }
 
-  return {regexFilter, textFilter, compareNumbers, compareText, chooseSortsCompareFn, defineCustomElement, TableComponent};
+  return {regexFilter, textFilter, compareNumbers, compareText, chooseSortsCompareFn, createSortCompareFn, defineCustomElement, TableComponent};
 })()

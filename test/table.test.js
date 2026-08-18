@@ -1,4 +1,4 @@
-const {compareNumbers, compareText, chooseSortsCompareFn, defineCustomElement, TableComponent} = require('../src/wc-grid-table.js');
+const {compareNumbers, compareText, chooseSortsCompareFn, createSortCompareFn, defineCustomElement, TableComponent} = require('../src/wc-grid-table.js');
 const {regexFilter, textFilter, compareFilter} = require('../src/filter-utils.js');
 
 
@@ -75,6 +75,47 @@ describe('compareText', () => {
   test('type mismatches should compare as usual, alphabetic', () => {
     expect(compareText(12, '012')).toBeLessThan(0);
     expect(compareText([1, 2, 3], '1,2,3')).toEqual(0);
+  });
+});
+
+describe('createSortCompareFn', () => {
+  const rows = [
+    {A: 1, B: 'x'},
+    {A: 1, B: 'y'},
+    {A: 2, B: 'x'},
+  ];
+
+  const table = {
+    data: rows,
+    customCompareNumbers: compareNumbers,
+    customCompareText: compareText,
+    customChooseSortsCompareFn: chooseSortsCompareFn,
+  };
+
+  const sortBy = (sortedBy) => rows.slice().sort(createSortCompareFn(table, sortedBy)).map(row => `${row.A}${row.B}`);
+
+  test('secondary sorting decides ties of the primary column', () => {
+    expect(sortBy([{col: 'A', dir: 'asc'}, {col: 'B', dir: 'asc'}])).toEqual(['2x', '1y', '1x']);
+  });
+
+  test('flipping the primary direction keeps the secondary order', () => {
+    expect(sortBy([{col: 'A', dir: 'desc'}, {col: 'B', dir: 'asc'}])).toEqual(['1y', '1x', '2x']);
+  });
+
+  test('flipping the secondary direction only reorders ties', () => {
+    expect(sortBy([{col: 'A', dir: 'asc'}, {col: 'B', dir: 'desc'}])).toEqual(['2x', '1x', '1y']);
+  });
+
+  test('empty values stay at the bottom in both directions', () => {
+    const withEmpty = [{A: 1}, {A: ''}, {A: 2}];
+    const emptyTable = Object.assign({}, table, {data: withEmpty});
+    const order = (dir) => withEmpty
+      .slice()
+      .sort(createSortCompareFn(emptyTable, [{col: 'A', dir: dir}]))
+      .map(row => row.A);
+
+    expect(order('asc')).toEqual([2, 1, '']);
+    expect(order('desc')).toEqual([1, 2, '']);
   });
 });
 
