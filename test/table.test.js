@@ -34,6 +34,15 @@ describe('compareNumbers', () => {
     expect(compareNumbers(1, '02')).toBeLessThan(0);
     expect(compareNumbers('0100', 100)).toEqual(0);
   });
+
+  test('comma decimal separators are parsed as fractional numbers', () => {
+    expect(compareNumbers('0,44', '0,16')).toEqual(compareNumbers(0.44, 0.16));
+    expect(compareNumbers('0,07', '0,78')).toEqual(compareNumbers(0.07, 0.78));
+    expect(compareNumbers('0,12', '0,12')).toEqual(0);
+    expect(compareNumbers('1,50', '1.50')).toEqual(0);
+    expect(compareNumbers('1.234,56', '1234.56')).toEqual(0);
+    expect(compareNumbers('1,234.56', 1234.56)).toEqual(0);
+  });
 });
 
 describe('compareText', () => {
