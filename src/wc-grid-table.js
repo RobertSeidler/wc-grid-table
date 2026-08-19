@@ -68,13 +68,17 @@ module.exports = (function() {
                 if (table && table.debug) console.log(...args);
             }
 
+            function getGrid(table) {
+                return table.elements.grid || table;
+            }
+
             function fixColumnHeader(table, col_height) {
                 table.header.forEach((column) => {
                     let col_header = table.elements.header[column];
                     col_height = col_header.offsetHeight;
                     if (col_header.offsetHeight > 0)
                         table.elements.stickyStyle.innerHTML = `
-                          .table-id-${table.tableId} > .wgt-filter_cell {
+                          .table-id-${table.tableId} .wgt-grid > .wgt-filter_cell {
                             top: ${col_header.offsetHeight}px;
                           }
                         `;
@@ -269,7 +273,7 @@ module.exports = (function() {
             function onHeaderMouseEnter(table, columnElement, columnName) {
                 table.elements.tooltip.innerHTML = columnName;
                 table.elements.tooltip.state.offsetLeft = columnElement.offsetLeft;
-                table.elements.tooltip.style.left = `${(columnElement.offsetLeft) - table.scrollLeft}px`;
+                table.elements.tooltip.style.left = `${(columnElement.offsetLeft) - getGrid(table).scrollLeft}px`;
                 table.elements.tooltip.classList.add('visible');
             }
 
@@ -292,7 +296,7 @@ module.exports = (function() {
                     col_header.append(col_container);
                     col_header.addEventListener('mouseenter', onHeaderMouseEnter.bind(this, table, col_header, column));
                     col_header.addEventListener('mouseleave', onHeaderMouseLeave.bind(this, table, col_header, column));
-                    table.append(col_header)
+                    getGrid(table).append(col_header)
                     col_height = col_header.offsetHeight;
                     let sort_arrow = document.createElement('div');
                     sort_arrow.classList.add('arrow');
@@ -308,8 +312,8 @@ module.exports = (function() {
                     col_header.append(sort_arrow)
 
                 });
-                table.addEventListener('scroll', (event) => {
-                    table.elements.tooltip.style.left = `${(table.elements.tooltip.state.offsetLeft) - table.scrollLeft}px`;
+                getGrid(table).addEventListener('scroll', (event) => {
+                    table.elements.tooltip.style.left = `${(table.elements.tooltip.state.offsetLeft) - getGrid(table).scrollLeft}px`;
                 });
                 window.addEventListener('message', function(event) {
                     if (event.data) {
@@ -340,7 +344,7 @@ module.exports = (function() {
                     tmp_style.classList.add('sticky_filter_offset');
                 }
                 tmp_style.innerHTML = `
-      .table-id-${table.tableId} > .wgt-filter_cell {
+      .table-id-${table.tableId} .wgt-grid > .wgt-filter_cell {
         top: ${col_height}px;
       }
     `;
@@ -377,7 +381,7 @@ module.exports = (function() {
                     filter_container.append(filter_input);
                     filter_container.append(filter_negate);
                     table.elements.filterCells[column] = filter_container;
-                    table.append(filter_container);
+                    getGrid(table).append(filter_container);
                 })
             }
 
@@ -399,7 +403,6 @@ module.exports = (function() {
                 bindColumnChooserHandler(table);
                 let footer = document.createElement('div');
                 footer.classList.add('wgt-footer');
-                footer.style.gridColumn = `1 / ${table.header.length + 1}`;
 
                 if (!table.elements.columnChooserMenuContainer) {
                     table.elements.columnChooserMenuContainer = createColumnChooserMenuContainer(table, table.headerAll);
@@ -586,7 +589,7 @@ module.exports = (function() {
         // }
         if(!table.elements.dataCells[column]) table.elements.dataCells[column] = [];
         table.elements.dataCells[column].push(cell);
-        table.append(cell)
+        getGrid(table).append(cell)
       })
     })
   }
@@ -793,6 +796,10 @@ module.exports = (function() {
     }
     
     table.innerHTML = "";
+    let grid = document.createElement('div');
+    grid.classList.add('wgt-grid');
+    table.elements.grid = grid;
+    table.append(grid);
     if(!table.data) table.data = [];      
     if(!table.sortedData) table.sortedData = table.data.map(value => value);
 
@@ -829,7 +836,7 @@ module.exports = (function() {
         table.headerAll.filter(column => 
           !table.hiddenColumns.includes(column) || table.visibleColumns.includes(column)
         )
-      table.style.gridTemplateColumns = `repeat(${table.header.length}, max-content)`;
+      getGrid(table).style.gridTemplateColumns = `repeat(${table.header.length}, max-content)`;
     }
 
     if(table.drawOptionals.header && table.header){
@@ -872,10 +879,9 @@ module.exports = (function() {
       'paginated data': pageinatedData
     });
     // pageinatedData = pageinatedData.map(entry => ({'#include': table.tickedRows.includes(JSON.stringify(entry)) ? 'x' : '', ...entry}))
-    table.style.gridTemplateRows = `${
+    getGrid(table).style.gridTemplateRows = `${
       table.drawOptionals.header ? 'max-content' : ''} ${
-        table.drawOptionals.filter ? 'max-content' : ''} repeat(${pageinatedData.length}, max-content) ${
-          table.drawOptionals.footer ? 'max-content' : ''}`; 
+        table.drawOptionals.filter ? 'max-content' : ''} repeat(${pageinatedData.length}, max-content)`; 
     fillData(table, pageinatedData);
     applyConditionalRowStyling(table, pageinatedData, table.header, table.conditionalRowStyle, table.conditionalStyleOptions);
     return pageinatedData;
