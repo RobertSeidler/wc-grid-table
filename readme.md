@@ -4,8 +4,20 @@
 
 ## Description
 
-wc-grid-table (short: wgt) is a Free and Open-Source, CSS-Grid, Table WebComponent. The goal of this WebComponent is high customizability and a low barrier to entry. 
-It uses no dependencys (lodash.debounce as optional plugin) and is only around 7kB (unzipped, minified) in size.
+wc-grid-table (short: wgt) is a Free and Open-Source, CSS-Grid, Table WebComponent. The goal of this WebComponent is high customizability and a low barrier to entry.
+It uses no required dependencies (`lodash.debounce` as optional plugin) and is only around 30kB (unzipped, minified) in size.
+
+Current version: **3.1.13**
+
+## Features
+
+* Sortable columns, including stable multi-column sort (later columns keep their order when an earlier column is reversed)
+* Locale-aware number sorting and comparison filters (`0,16` and `0.16` are both treated as decimals)
+* Per-column filters (contains / not-contains regex, equals, greater, less, …)
+* Filters run on the **raw values**; formatters only change what is displayed
+* Pagination, column chooser (modal) and a footer that stays put while cells scroll
+* Optional URL rewrite so filter, sort, pagination and hidden columns survive a reload
+* Optional `debug` logging
 
 ## Installation
 
@@ -18,21 +30,30 @@ npm install wc-grid-table
 Use via CDN:
 
 ```html
-<scirpt src="https://unpkg.com/wc-grid-table@1.0.3/dist/standalone/bundle.min.js"></script>
+<script src="https://unpkg.com/wc-grid-table@3.1.13/dist/standalone/bundle.min.js"></script>
 ```
 
 ## Build from Source
 
-First install all dev-dependecies:
+First install all dev-dependencies:
+
 ```bash
 npm install
 ```
 
-wgt uses Browserify as bundler. In order to build the Component and all the examples you can run:
+wgt uses Browserify as bundler. To build the component and the examples:
 
 ```bash
-npm run build_all
+npm run build:all
 ```
+
+Useful scripts:
+
+| Script | Purpose |
+| --- | --- |
+| `npm test` | Jest tests |
+| `npm run serve` | Serve `dist/` and open the standalone example |
+| `npm run build:all` | Create `dist/` folders if needed, then build all bundles |
 
 ## Usage
 
@@ -43,25 +64,24 @@ Include it in your page:
 ```html
 <body>
   ...
-  <script src="https://unpkg.com/wc-grid-table@1.0.3/dist/standalone/bundle.min.js"></script>
+  <script src="https://unpkg.com/wc-grid-table@3.1.13/dist/standalone/bundle.min.js"></script>
 </body>
 ```
 
-Afterwards the customElement should be registered. You can use the provided `defineCustomElement()` function, to register the component with the name `wc-grid-table` or call customElement yourself with a custom name:
+Afterwards register the custom element. Use the provided `defineCustomElement()` function to register it as `wc-grid-table`, or call `customElements.define` with a custom name:
 
 ```javascript
 WcGridTable.defineCustomElement();
 
 // or
 
-customElements.define('your-fancy-name', TableComponent);
+customElements.define('your-fancy-name', WcGridTable.TableComponent);
 ```
 
-The name has to (or should?!) include atleast one hyphen.
+The name has to include at least one hyphen.
 After creating a wgt element the only thing needed is to add data:
 
 ```javascript
-// any sort of data
 let data = [
   {
     firstname: "Hans",
@@ -80,67 +100,73 @@ let data = [
 ]
 
 let table = document.createElement('wc-grid-table');
-table.setData(data)
+table.setData(data);
 
 document.querySelector('body').append(table);
+```
+
+Formatters can wrap values for display (for example as links) without changing filter or sort:
+
+```javascript
+table.formatter.Artikelnummer = [
+  (value) => value != undefined
+    ? `<a href="/article/${value}">${value}</a>`
+    : ''
+];
 ```
 
 ### Customization
 
 #### Methods
 
-The following functions are exposed on the wgt element (documented in there respective docstring):
-* useDefaultOptions()
-* connectedCallback()
-* setDebounceFn(debounceFn, sortDebounceOptions, filterDebouncedOptions)
-* setData(data)
-* getDisplayedData()
-* getOriginalData()
-* redrawData()
+The following functions are exposed on the wgt element (documented in their respective docstring):
 
-#### Propertys
+* `useDefaultOptions()`
+* `connectedCallback()`
+* `setDebounceFn(debounceFn, sortDebounceOptions, filterDebouncedOptions)`
+* `setData(data)`
+* `getDisplayedData()`
+* `getOriginalData()`
+* `redrawData()`
+* `redrawTable()`
+* `registerPlugin(plugin)`
 
-The following properties can be accessed / set directly on wgt element:
-* root_document - either document or the connected shadowRoot
-* conditionalColumnStyle - an object with keys [`condition`, `styles`] where condition is a function `(data : Array<Object> , column : string) => Boolean` and styles is
-  an Array of strings with styles, that should apply when `condition` returns true for a column.
-  Can be used to style a column in dependency of their data. 
-* conditionalColumnOptions - an object with options concerning conditionalColumnStyle. Available Options:
-  * active: Boolean
-* formatter - an Object with column names as keys, containing lists of formatter functions, that should be applied before displaing a table value. Formatter functions
-  have this signature: `(value, rowIndex, completeData) => any`. Formatter get applied in the sequence they are in the list (leftmost function (2nd from left (3rd ...))).
-* formatterOptions - an object with options concerning formatter. Available Options:
-  * active: Boolean
-* filter - an Object with column names as keys, containing strings which correspond to the filter input values in the ui. 
-  Those get validated by customFilterFunction / regexFilter.
-* filterOptions - an object with options concerning filter. Available Options:
-  * active: Boolean
-* customFilterFunction - a function that can override default filter behaviour (regexFilter). Arguments are filter input values and value to test against as strings.
-  The expected return is a filtered data Array.
-* sortedBy - an Array of Objects describing sorting. Keys are col - column name sorted - and dir - the sort direction (one of [`asc`, `desc`]). Sorting is kept after each
-  sorting operation, so that primary, secondary, tertiary, ... sorting is possible.
-* sortOptions - an object with options concerning sorting. Available Options:
-  * active: Boolean
-* customChooseSortsCompareFn - a function maps columns to sorting behavior. Expected return for given (table: TableComponent instance, data: Array<Object>, column: string)
-  is a function to compare the values of this column.
-* customCompareNumbers | customCompareText - functions to replace default sort behavior corresponing to sorting numbers / text. Like default js CompareFn used in Array.prototype.sort
+#### Properties
+
+The following properties can be accessed / set directly on the wgt element:
+
+* `root_document` — either `document` or the connected shadowRoot
+* `conditionalColumnStyle` — an object with keys [`condition`, `styles`] where `condition` is a function `(data: Array<Object>, column: string) => Boolean` and `styles` is an Array of CSS strings applied when `condition` returns true for a column
+* `conditionalRowStyle` — like column styles, but per row / cell
+* `conditionalStyleOptions` — `{ active: Boolean }`
+* `formatter` — an Object with column names as keys, containing lists of formatter functions applied before displaying a value. Signature: `(value, rowIndex, completeData) => any`. Formatters run left to right. They do **not** change the values used for filter and sort
+* `formatterOptions` — `{ active: Boolean }`
+* `filter` — an Object with column names as keys, containing the filter input strings
+* `filterOptions` — `{ active: Boolean }`
+* `filterOperations` — list of `{ name, char, fn(filterInput, testValue) }`. Default operations: contains / not-contains (regex), equals, greater, greater-or-equal, less, less-or-equal, not-equal. Cycle them with the symbol next to each filter input
+* `sortedBy` — Array of `{ col, dir }` (`dir` is `"asc"` or `"desc"`). Sorting is stacked, so primary, secondary, tertiary, … sorting is possible
+* `sortOptions` — `{ active: Boolean }`
+* `customChooseSortsCompareFn` — maps a column to a compare function. Signature: `(table, data, column) => CompareFn`
+* `customCompareNumbers` / `customCompareText` — replacements for the default number / text compare functions (`Array.prototype.sort` style)
+* `pagination` — `{ active, currentPage, pageSize }` (default page size is 40)
+* `hiddenColumns` / `visibleColumns` / `hiddenColumnsCondition` — control which columns are shown. The footer **columns** button opens a modal to toggle them
 
 #### Attributes
 
-The following Attributes can be set, to hide some parts of the ui:
-* noheader: hide header row
-* nofilter: hide filter row
-* nofooter: hide footer row
+* `noheader` — hide header row
+* `nofilter` — hide filter row
+* `nofooter` — hide footer
+* `nopagekey` — do not bind left/right keys for pagination
+* `norewriteurl` — do not write table state into the URL
+* `debug` — verbose `console.log` output (sort, filter, format, plugins)
+* `page-size` — initial page size, e.g. `page-size="25"`
+* `height` — max-height of the table container, e.g. `height="80vh"`
+* `options` — serialized initial options (same shape as the URL state)
 
-
-More to come.
+```html
+<wc-grid-table height="80vh" page-size="25" debug></wc-grid-table>
+```
 
 ## License
 
-Copyright 2019 Robert Seidler
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ISC. See [LICENSE](LICENSE).

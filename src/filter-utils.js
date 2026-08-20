@@ -1,3 +1,5 @@
+const { tryTransformToNumber } = require('./number-utils.js');
+
 /**
  * Transform the filter input into a RegExp, to let the user have a powerfull way to filter in the table.
  * Only rows where the tested value matches the RegExp, get displayed. 
@@ -48,9 +50,12 @@ function textFilter(negate, filterInput, testValue) {
 function compareFilter(operation, filterInput, testValue) {
     let result = false;
     if (testValue != undefined) {
-        try {
-            result = operation(Number.parseFloat(filterInput), Number.parseFloat(testValue));
-        } catch (err) {
+        const filterNum = tryTransformToNumber(filterInput);
+        const valueNum = tryTransformToNumber(testValue);
+        if (typeof filterNum === 'number' && typeof valueNum === 'number'
+            && !Number.isNaN(filterNum) && !Number.isNaN(valueNum)) {
+            result = operation(filterNum, valueNum);
+        } else {
             result = operation(filterInput.toString(), testValue.toString());
         }
     }

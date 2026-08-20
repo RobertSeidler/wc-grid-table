@@ -159,4 +159,27 @@ describe('regexFilter', () => {
 
 describe('textFilter', () => {});
 
-describe('compareFilter', () => {});
+describe('compareFilter', () => {
+  const eq = (a, b) => a == b;
+  const gt = (a, b) => a < b;
+  const lt = (a, b) => a > b;
+
+  test('equals uses comma decimals instead of truncating at the separator', () => {
+    expect(compareFilter(eq, '0', '0,00')).toBe(true);
+    expect(compareFilter(eq, '0', '0,40')).toBe(false);
+    expect(compareFilter(eq, '0,40', '0,40')).toBe(true);
+    expect(compareFilter(eq, '0.40', '0,40')).toBe(true);
+  });
+
+  test('greater / less compare the full fractional value', () => {
+    expect(compareFilter(gt, '0', '0,40')).toBe(true);
+    expect(compareFilter(gt, '0', '0,00')).toBe(false);
+    expect(compareFilter(lt, '1', '0,40')).toBe(true);
+    expect(compareFilter(lt, '0,16', '0,40')).toBe(false);
+  });
+
+  test('thousands separators are stripped before comparing', () => {
+    expect(compareFilter(eq, '1234.56', '1.234,56')).toBe(true);
+    expect(compareFilter(gt, '1000', '1.234,56')).toBe(true);
+  });
+});
